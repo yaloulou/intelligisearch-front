@@ -1,0 +1,361 @@
+<template>
+  <v-container>
+    <!-- Barre de recherche principale -->
+    <v-row class="my-2" justify="center">
+      <v-col cols="12" md="8">
+        <v-text-field
+          v-model="searchQuery"
+          label="Rechercher"
+          append-icon="mdi-magnify"
+          @keyup.enter="performSearch"
+          outlined
+          dense
+          placeholder="Tapez votre recherche ici..."
+          class="search-bar"
+        ></v-text-field>
+      </v-col>
+    </v-row>
+
+    <!-- Filtres supplémentaires : Province, Nature, Date + Bouton de recherche -->
+    <v-row class="my-2" justify="space-between">
+      <!-- Province avec bouton clear -->
+      <v-col cols="12" md="4" class="d-flex align-center">
+        <v-select
+          v-model="searchProvince"
+          :items="provinceOptions"
+          label="Province"
+          outlined
+          dense
+          append-icon="mdi-map-marker"
+          class="filter-input flex-grow-1"
+        ></v-select>
+        <v-btn icon @click="clearProvince" class="clear-btn ml-2">
+          <v-icon color="red">mdi-close-circle</v-icon>
+        </v-btn>
+      </v-col>
+
+      <!-- Nature avec bouton clear -->
+      <v-col cols="12" md="4" class="d-flex align-center">
+        <v-select
+          v-model="searchNature"
+          :items="natureOptions"
+          label="Nature d'incident"
+          outlined
+          dense
+          append-icon="mdi-alert-circle"
+          class="filter-input flex-grow-1"
+        ></v-select>
+        <v-btn icon @click="clearNature" class="clear-btn ml-2">
+          <v-icon color="red">mdi-close-circle</v-icon>
+        </v-btn>
+      </v-col>
+
+      <!-- Plage de dates avec bouton clear -->
+      <v-col cols="12" md="4" class="d-flex align-center">
+        <v-menu
+          ref="menu"
+          v-model="menu"
+          :close-on-content-click="false"
+          :nudge-right="40"
+          transition="scale-transition"
+          offset-y
+          min-width="290px"
+        >
+          <template v-slot:activator="{ on, attrs }">
+            <v-text-field
+              v-model="formattedDateRange"
+              label="Plage de dates"
+              prepend-icon="mdi-calendar"
+              readonly
+              v-bind="attrs"
+              v-on="on"
+              outlined
+              dense
+              class="filter-input"
+            ></v-text-field>
+          </template>
+          <v-date-picker
+            v-model="searchDateRange"
+            range
+            @input="menu = false"
+          ></v-date-picker>
+        </v-menu>
+        <v-btn icon @click="clearDate" class="clear-btn ml-2">
+          <v-icon color="red">mdi-close-circle</v-icon>
+        </v-btn>
+      </v-col>
+
+      <!-- Bouton de recherche -->
+      <v-col cols="12" md="2">
+        <v-btn
+          @click="performSearch"
+          color="primary"
+          block
+          class="search-button elevation-2"
+        >
+          <v-icon left>mdi-magnify</v-icon> Rechercher
+        </v-btn>
+      </v-col>
+    </v-row>
+
+    <!-- Tableau des résultats -->
+    <v-row class="my-4">
+      <v-col cols="12">
+        <v-data-table
+          :headers="headers"
+          :items="results"
+          item-key="id"
+          class="elevation-1"
+          :loading="loading"
+          loading-text="Chargement des résultats..."
+          no-data-text="Aucun résultat trouvé"
+        >
+          <template v-slot:item.date_incident="{ item }">
+            <span>{{ formatDate(item.date_incident) }}</span>
+          </template>
+
+          <template v-slot:item.province_region="{ item }">
+            <span>{{ item.province_region }}</span>
+          </template>
+
+          <template v-slot:item.nature_incident="{ item }">
+            <span>{{ item.nature_incident }}</span>
+          </template>
+
+          <template v-slot:item.degats_humains="{ item }">
+            <span
+              >Morts: {{ item.degats_humains.nombre_morts }} - Blessés:
+              {{ item.degats_humains.nombre_blesses }}</span
+            >
+          </template>
+
+          <template v-slot:item.document="{ item }">
+            <v-btn icon @click="viewDetails(item.id)">
+              <v-icon>mdi-file-document</v-icon>
+            </v-btn>
+          </template>
+        </v-data-table>
+      </v-col>
+    </v-row>
+  </v-container>
+</template>
+
+<script>
+import axios from "axios";
+
+export default {
+  data() {
+    return {
+      searchQuery: "",
+      searchDateRange: [], // Tableau pour stocker la plage de dates (date de début et de fin)
+      searchNature: "", // Champ pour la nature d'incident
+      searchProvince: "", // Champ pour la province
+      results: [],
+      loading: false,
+      menu: false, // Menu pour le date picker
+      natureOptions: [
+        "Expulsion",
+        "Attaque",
+        "Affrontement Armé",
+        "Bombardement",
+        "Arrestation",
+        "Manifestation Pacifique",
+        "Utilisation Perturbée Des Armes",
+        "Attaque Par Bombardement",
+        "Enlèvement",
+        "Recrutement",
+        "Autre",
+        "Renforcement",
+        "Violence Collective",
+        "Attaque Armée",
+        "Manifestation Violente",
+        "Le Gouvernement Reprend Du Territoire",
+        "Transfert De Territoire Non Violent",
+        "L'Agresseur Gagne Du Terrain",
+        "Reddition",
+        "Ravitaillement",
+        "Migration",
+        "Publication",
+        "Evasion",
+        "Pillage",
+        "Frappe Aérienne",
+        "Renforcement",
+        "Protestation",
+        "Capitulation",
+        "Expulsion",
+        "Occupation",
+        "Embuscade",
+        "Découverte",
+        "Patrouille De Combat",
+        "Accident",
+        "Opération",
+        "Catastrophe Naturelle",
+        "Signalement Et Information",
+        "Libération",
+        "Lynchage",
+        "Crash Avion",
+        "Explosion",
+        "Bouclage",
+        "Détournement",
+        "Assassinat",
+        "Braquage",
+        "Accrochage",
+        "Conflit",
+        "Réunion",
+        "Menaces",
+        "Tracasserie Militaire",
+        "Interpellation",
+        "Eboulement De Terre",
+        "Naufrage",
+        "Tension",
+        "Problème De Communication",
+        "Rupture De Stocks Des Vivres",
+        "Echauffourées",
+        "Capitulation",
+      ],
+      provinceOptions: [
+        "BAS-UÉLÉ",
+        "HAUT-UÉLÉ",
+        "ITURI",
+        "TSHOPO",
+        "KONGO CENTRAL",
+        "KWANGO",
+        "KWILU",
+        "MAI-NDOMBE",
+        "ÉQUATEUR",
+        "MONGALA",
+        "NORD-UBANGI",
+        "SUD-UBANGI",
+        "TSHUAPA",
+        "HAUT-LOMAMI",
+        "HAUT-KATANGA",
+        "LUALABA",
+        "TANGANYIKA",
+        "KINSHASA",
+        "KASAÏ",
+        "KASAÏ-CENTRAL",
+        "KASAÏ-ORIENTAL",
+        "LOMAMI",
+        "SANKURU",
+        "MANIEMA",
+        "NORD-KIVU",
+        "SUD-KIVU",
+      ],
+      headers: [
+        { text: "Date Incident", value: "date_incident" },
+        { text: "Province", value: "province_region" },
+        { text: "Nature", value: "nature_incident" },
+        { text: "Description", value: "description" },
+        { text: "Dégâts humains", value: "degats_humains" },
+        { text: "Document", value: "document", align: "center" }, // Nouvelle colonne avec icône de document
+      ],
+    };
+  },
+  computed: {
+    formattedDateRange() {
+      if (this.searchDateRange.length === 2) {
+        return `${this.formatDate(this.searchDateRange[0])} - ${this.formatDate(
+          this.searchDateRange[1]
+        )}`;
+      }
+      return ""; // Si aucune plage n'est sélectionnée
+    },
+  },
+  methods: {
+    async performSearch() {
+      this.loading = true;
+      try {
+        let query = "";
+
+        // Ajouter la barre de recherche si spécifiée
+        if (this.searchQuery) {
+          query += `${this.searchQuery}`;
+        }
+
+        // Ajouter la plage de dates si spécifiée (facultatif)
+        if (this.searchDateRange.length === 2) {
+          const [startDate, endDate] = this.searchDateRange;
+          query += query
+            ? ` AND date_incident:[${startDate} TO ${endDate}]`
+            : `date_incident:[${startDate} TO ${endDate}]`;
+        }
+
+        // Ajouter la nature si spécifiée
+        if (this.searchNature) {
+          query += query
+            ? ` AND nature_incident:${this.searchNature}`
+            : `nature_incident:${this.searchNature}`;
+        }
+
+        // Ajouter la province si spécifiée
+        if (this.searchProvince) {
+          query += query
+            ? ` AND province_region:${this.searchProvince}`
+            : `province_region:${this.searchProvince}`;
+        }
+
+        const response = await axios.get("http://localhost:9200/intel_v1/_search", {
+          params: {
+            q: query, // Utilise la requête modifiée
+          },
+          auth: {
+            username: "elastic",
+            password: "Lisu2024",
+          },
+        });
+
+        this.results = response.data.hits.hits.map((hit) => ({
+          id: hit._id, // Store _id here
+          ...hit._source, // Spread the _source to include all incident details
+        }));
+      } catch (error) {
+        console.error("Erreur lors de la recherche:", error);
+      } finally {
+        this.loading = false;
+      }
+    },
+    formatDate(date) {
+      const options = { year: "numeric", month: "2-digit", day: "2-digit" };
+      return new Date(date).toLocaleDateString(undefined, options);
+    },
+    clearDate() {
+      this.searchDateRange = []; // Réinitialiser la plage de dates
+    },
+    clearProvince() {
+      this.searchProvince = ""; // Réinitialiser la province
+    },
+    clearNature() {
+      this.searchNature = ""; // Réinitialiser la nature
+    },
+    viewDetails(id) {
+      // Rediriger vers la page des détails
+      this.$router.push({ name: "IncidentDetails", params: { id } });
+    },
+  },
+};
+</script>
+
+<style scoped>
+.my-2 {
+  margin-top: 8px;
+  margin-bottom: 8px;
+}
+
+.filter-input {
+  border-radius: 8px;
+}
+
+.search-bar {
+  background-color: #f5f5f5;
+  border-radius: 8px;
+}
+
+.search-button {
+  font-weight: bold;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.clear-btn {
+  margin-top: 10px;
+}
+</style>
