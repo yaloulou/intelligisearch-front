@@ -451,6 +451,7 @@
 
 <script>
 import axios from "axios";
+import config from "@/config";
 
 export default {
   data() {
@@ -544,7 +545,7 @@ export default {
 
       axios
         .post(
-          "http://41.79.235.212:9200/intel_v1/_doc/",
+          `${config.URL_BASE}/intel_v1/_doc/`,
           dataToSubmit,
           authOptions
         )

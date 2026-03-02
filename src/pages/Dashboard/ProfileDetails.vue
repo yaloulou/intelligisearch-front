@@ -97,11 +97,12 @@
 
 <script>
 import axios from "axios";
+import config from "@/config";
 
 export default {
   data() {
     return {
-      ES_BASE_URL: "http://41.79.235.212:9200",
+      ES_BASE_URL: config.URL_BASE,
       ES_INDEX: "entities_v1",
       ES_AUTH: {
         username: "elastic",

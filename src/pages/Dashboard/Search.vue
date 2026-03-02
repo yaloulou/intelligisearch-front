@@ -232,8 +232,9 @@
 
 <script>
 import axios from "axios";
+import config from "@/config";
 
-const ES_URL = "http://41.79.235.212:9200";
+const ES_URL = config.URL_BASE;
 const INDEX = "intel_v1";
 const AUTH = {
   username: "elastic",
