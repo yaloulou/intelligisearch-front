@@ -1,0 +1,23 @@
+.events-page {
+  h3 {
+    font-weight: 600;
+    color: #333;
+  }
+
+  .v-card {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+    .v-card-title {
+      display: flex;
+      align-items: center;
+      padding: 20px;
+      border-bottom: 1px solid #eee;
+    }
+  }
+
+  .v-data-table {
+    .v-data-table__wrapper {
+      overflow-x: auto;
+    }
+  }
+}

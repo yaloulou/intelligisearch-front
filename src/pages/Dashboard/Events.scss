@@ -1,0 +1,49 @@
+.events-page {
+  h3 {
+    font-weight: 600;
+    color: #333;
+  }
+
+  .v-card {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+
+    .v-card-title {
+      display: flex;
+      align-items: center;
+      padding: 20px;
+      border-bottom: 1px solid #eee;
+    }
+  }
+
+  .v-data-table {
+    .v-data-table__wrapper {
+      overflow-x: auto;
+    }
+  }
+
+  .impact-card {
+    border: 1px solid #eee;
+    border-radius: 8px;
+    transition: all 0.3s ease;
+
+    &:hover {
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    }
+  }
+
+  .error-light {
+    background: rgba(244, 67, 54, 0.05);
+  }
+
+  .warning-light {
+    background: rgba(255, 152, 0, 0.05);
+  }
+
+  .info-light {
+    background: rgba(33, 150, 243, 0.05);
+  }
+
+  .secondary-light {
+    background: rgba(156, 39, 176, 0.05);
+  }
+}

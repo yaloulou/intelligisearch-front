@@ -6,19 +6,19 @@
         <v-text-field
           v-model="searchQuery"
           label="Rechercher"
-          append-icon="mdi-magnify"
           @keyup.enter="performSearch"
           outlined
           dense
           placeholder="Tapez votre recherche ici..."
           class="search-bar"
-        ></v-text-field>
+          clearable
+        />
       </v-col>
     </v-row>
 
-    <!-- Filtres supplémentaires : Province, Nature, Date + Bouton de recherche -->
-    <v-row class="my-2" justify="space-between">
-      <!-- Province avec bouton clear -->
+    <!-- Filtres : Province, Event, Dates + Bouton -->
+    <v-row class="my-2" justify="space-between" align="center">
+      <!-- Province -->
       <v-col cols="12" md="4" class="d-flex align-center">
         <v-select
           v-model="searchProvince"
@@ -26,15 +26,15 @@
           label="Province"
           outlined
           dense
-          append-icon="mdi-map-marker"
           class="filter-input flex-grow-1"
-        ></v-select>
+          clearable
+        />
         <v-btn icon @click="clearProvince" class="clear-btn ml-2">
           <v-icon color="red">mdi-close-circle</v-icon>
         </v-btn>
       </v-col>
 
-      <!-- Event avec bouton clear -->
+      <!-- Event -->
       <v-col cols="12" md="4" class="d-flex align-center">
         <v-select
           v-model="searchEvent"
@@ -42,15 +42,15 @@
           label="Événement"
           outlined
           dense
-          append-icon="mdi-alert-circle"
           class="filter-input flex-grow-1"
-        ></v-select>
+          clearable
+        />
         <v-btn icon @click="clearEvent" class="clear-btn ml-2">
           <v-icon color="red">mdi-close-circle</v-icon>
         </v-btn>
       </v-col>
 
-      <!-- Plage de dates avec bouton clear -->
+      <!-- Plage de dates -->
       <v-col cols="12" md="4" class="d-flex align-center">
         <v-menu
           ref="menu"
@@ -65,294 +65,165 @@
             <v-text-field
               v-model="formattedDateRange"
               label="Plage de dates"
-              prepend-icon="mdi-calendar"
               readonly
               v-bind="attrs"
               v-on="on"
               outlined
               dense
               class="filter-input"
-            ></v-text-field>
+              clearable
+              @click:clear="clearDate"
+            />
           </template>
-          <v-date-picker
-            v-model="searchDateRange"
-            range
-            @input="menu = false"
-          ></v-date-picker>
+
+          <v-date-picker v-model="searchDateRange" range @input="menu = false" />
         </v-menu>
+
         <v-btn icon @click="clearDate" class="clear-btn ml-2">
           <v-icon color="red">mdi-close-circle</v-icon>
         </v-btn>
       </v-col>
 
-      <!-- Bouton de recherche -->
+      <!-- Bouton -->
       <v-col cols="12" md="2">
-        <v-btn
-          @click="performSearch"
-          color="primary"
-          block
-          class="search-button elevation-2"
-        >
-          <v-icon left>mdi-magnify</v-icon> Rechercher
+        <v-btn @click="performSearch" color="primary" block class="search-button">
+          Rechercher
         </v-btn>
       </v-col>
     </v-row>
 
-    <!-- Tableau des résultats -->
-    <!-- <v-row class="my-4">
-      <v-col cols="12">
-        <v-data-table
-          :headers="headers"
-          :items="results"
-          item-key="id"
-          class="elevation-1"
-          :loading="loading"
-          loading-text="Chargement des résultats..."
-          no-data-text="Aucun résultat trouvé"
-        >
-          <template v-slot:item.date_event="{ item }">
-            <span>{{ formatDate(item.date_event) }}</span>
-          </template>
-
-          <template v-slot:item.province_region="{ item }">
-            <span>{{ item.province_region }}</span>
-          </template>
-
-          <template v-slot:item.event="{ item }">
-            <span>{{ item.event }}</span>
-          </template>
-
-          <template v-slot:item.degats_humains="{ item }">
-            <span
-              >Morts: {{ item.degats_humains.morts }} - Blessés:
-              {{ item.degats_humains.blesses }}</span
-            >
-          </template>
-
-          <template v-slot:item.document="{ item }">
-            <v-btn icon @click="viewDetails(item.id)">
-              <v-icon>mdi-file-document</v-icon>
-            </v-btn>
-          </template>
-        </v-data-table>
-      </v-col>
-    </v-row> -->
+    <!-- Tableau -->
     <v-row class="my-4">
       <v-col cols="12">
         <v-data-table
           :headers="headers"
           :items="results"
           item-key="id"
-          class="elevation-1"
           :loading="loading"
           loading-text="Chargement des résultats..."
           no-data-text="Aucun résultat trouvé"
+          class="elevation-1"
         >
           <template v-slot:item.date_event="{ item }">
             <span>{{ formatDate(item.date_event) }}</span>
           </template>
 
           <template v-slot:item.province_region="{ item }">
-            <span>{{ item.province_region }}</span>
+            <span>{{ item.province_region || "-" }}</span>
           </template>
 
           <template v-slot:item.event="{ item }">
-            <span>{{ item.event }}</span>
+            <span>{{ item.event || "-" }}</span>
           </template>
 
           <template v-slot:item.degats_humains="{ item }">
-            <span
-              >Morts: {{ item.degats_humains.nombre_morts }} - Blessés:
-              {{ item.degats_humains.nombre_blesses }}</span
-            >
+            <span>
+              Morts: {{ item.degats_humains?.morts ?? 0 }} - Blessés:
+              {{ item.degats_humains?.blesses ?? 0 }}
+            </span>
           </template>
 
           <template v-slot:item.document="{ item }">
-            <v-btn icon @click="viewDetails(item.id)">
-              <v-icon>mdi-file-document</v-icon>
-            </v-btn>
+            <v-btn color="primary" @click="viewDetails(item.id)">Voir</v-btn>
           </template>
 
-          <!-- New Edit Button Column -->
           <template v-slot:item.actions="{ item }">
-            <v-btn icon @click="editItem(item)">
-              <v-icon color="green">mdi-pencil</v-icon>
-            </v-btn>
+            <v-btn color="success" @click="editItem(item)">Modifier</v-btn>
           </template>
         </v-data-table>
       </v-col>
     </v-row>
 
     <!-- Edit Dialog -->
-    <v-dialog v-model="editDialog" max-width="800px">
+    <v-dialog v-model="editDialog" max-width="900px">
       <v-card>
         <v-card-title class="headline">Modifier l'incident</v-card-title>
+
         <v-card-text>
           <v-form ref="editForm">
+            <!-- Champs ES réels -->
+            <v-text-field v-model="currentItem.province_region" label="Province" outlined dense />
+            <v-text-field v-model="currentItem.territoire_ville" label="Territoire/Ville" outlined dense />
+            <v-text-field v-model="currentItem.groupement_quartier" label="Groupement/Quartier" outlined dense />
+
             <v-text-field
-              v-model="currentItem.province_region"
-              label="Province"
-              outlined
-              dense
-            ></v-text-field>
-            <v-text-field
-              v-model="currentItem.territoire_ville"
-              label="Territoire/Ville"
-              outlined
-              dense
-            ></v-text-field>
-            <v-text-field
-              v-model="currentItem.date_incident"
-              label="Date de l'incident"
+              v-model="currentItem.date_event"
+              label="Date (date_event)"
               type="date"
               outlined
               dense
-            ></v-text-field>
-            <v-text-field
-              v-model="currentItem.nature_incident"
-              label="Nature de l'incident"
-              outlined
-              dense
-            ></v-text-field>
-            <v-text-field
-              v-model="currentItem.lieu_precis"
-              label="Lieu Précis"
-              outlined
-              dense
-            ></v-text-field>
-            <v-textarea
-              v-model="currentItem.acteurs_impliques"
-              label="Acteurs Impliqués"
-              outlined
-              dense
-            ></v-textarea>
-            <v-textarea
-              v-model="currentItem.objectif_incident"
-              label="Objectif de l'incident"
-              outlined
-              dense
-            ></v-textarea>
-            <v-textarea
-              v-model="currentItem.methode_moyen_utilise"
-              label="Méthode/Moyen Utilisé"
-              outlined
-              dense
-            ></v-textarea>
+            />
 
-            <!-- Section Dégâts Humains -->
-            <h5>Dégâts Humains</h5>
-            <v-text-field
-              v-model="currentItem.degats_humains.nombre_morts"
-              label="Nombre de Morts"
-              type="number"
-              outlined
-              dense
-            ></v-text-field>
-            <v-text-field
-              v-model="currentItem.degats_humains.nombre_blesses"
-              label="Nombre de Blessés"
-              type="number"
-              outlined
-              dense
-            ></v-text-field>
-            <v-text-field
-              v-model="currentItem.degats_humains.nombre_disparus"
-              label="Nombre de Disparus"
-              type="number"
-              outlined
-              dense
-            ></v-text-field>
-            <v-text-field
-              v-model="currentItem.degats_humains.nombre_expulses"
-              label="Nombre d'Expulsés"
-              type="number"
-              outlined
-              dense
-            ></v-text-field>
+            <v-text-field v-model="currentItem.event" label="Événement (event)" outlined dense />
+            <v-text-field v-model="currentItem.categorie" label="Catégorie" outlined dense />
 
-            <!-- Section Dégâts Matériels -->
-            <h5>Dégâts Matériels</h5>
-            <v-text-field
-              v-model="currentItem.degats_materiels.vehicules_endommages"
-              label="Véhicules Endommagés"
-              type="number"
-              outlined
-              dense
-            ></v-text-field>
-            <v-text-field
-              v-model="currentItem.degats_materiels.batiments_endommages"
-              label="Bâtiments Endommagés"
-              type="number"
-              outlined
-              dense
-            ></v-text-field>
-            <v-text-field
-              v-model="currentItem.degats_materiels.infrastructures_endommagees"
-              label="Infrastructures Endommagées"
-              type="number"
-              outlined
-              dense
-            ></v-text-field>
-            <v-textarea
-              v-model="currentItem.degats_materiels.autres_degats"
-              label="Autres Dégâts"
-              outlined
-              dense
-            ></v-textarea>
+            <v-text-field v-model="currentItem.localite_village_lieuprecis" label="Localité / Lieu précis" outlined dense />
+            <v-text-field v-model="currentItem.geoprecision" label="Géoprécision" outlined dense />
 
-            <!-- Autres Détails de l'Incident -->
-            <v-textarea
-              v-model="currentItem.impact_socioeconomique"
-              label="Impact Socioéconomique"
-              outlined
-              dense
-            ></v-textarea>
-            <v-textarea
-              v-model="currentItem.repercussions_politiques_exterieures"
-              label="Répercussions Politiques Extérieures"
-              outlined
-              dense
-            ></v-textarea>
-            <v-textarea
-              v-model="currentItem.reponse_autorites"
-              label="Réponse des Autorités"
-              outlined
-              dense
-            ></v-textarea>
-            <v-textarea
-              v-model="currentItem.reactions_acteurs_locaux"
-              label="Réactions des Acteurs Locaux"
-              outlined
-              dense
-            ></v-textarea>
-            <v-textarea
-              v-model="currentItem.autres_mesures"
-              label="Autres Mesures"
-              outlined
-              dense
-            ></v-textarea>
-            <v-textarea
-              v-model="currentItem.description"
-              label="Description de l'Incident"
-              outlined
-              dense
-            ></v-textarea>
-            <v-text-field
-              v-model="currentItem.categorie"
-              label="Catégorie"
-              outlined
-              dense
-            ></v-text-field>
+            <v-row>
+              <v-col cols="12" md="6">
+                <v-text-field v-model.number="currentItem.latitude" label="Latitude" type="number" outlined dense />
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-text-field v-model.number="currentItem.longitude" label="Longitude" type="number" outlined dense />
+              </v-col>
+            </v-row>
+
+            <v-textarea v-model="currentItem.description" label="Description" outlined dense />
+
+            <v-row>
+              <v-col cols="12" md="6">
+                <v-text-field v-model="currentItem.acteur1" label="Acteur 1" outlined dense />
+                <v-text-field v-model="currentItem.assoc_acteur1" label="Association Acteur 1" outlined dense />
+              </v-col>
+              <v-col cols="12" md="6">
+                <v-text-field v-model="currentItem.acteur2" label="Acteur 2" outlined dense />
+                <v-text-field v-model="currentItem.assoc_acteur2" label="Association Acteur 2" outlined dense />
+              </v-col>
+            </v-row>
+
+            <v-text-field v-model="currentItem.source" label="Source" outlined dense />
+            <v-text-field v-model="currentItem.pays" label="Pays" outlined dense />
+
+            <!-- Dégâts humains -->
+            <h5 class="mt-4">Dégâts Humains</h5>
+            <v-row>
+              <v-col cols="12" md="3">
+                <v-text-field v-model.number="currentItem.degats_humains.morts" label="Morts" type="number" outlined dense />
+              </v-col>
+              <v-col cols="12" md="3">
+                <v-text-field v-model.number="currentItem.degats_humains.blesses" label="Blessés" type="number" outlined dense />
+              </v-col>
+              <v-col cols="12" md="3">
+                <v-text-field v-model.number="currentItem.degats_humains.enleves_disparus" label="Enlevés/Disparus" type="number" outlined dense />
+              </v-col>
+              <v-col cols="12" md="3">
+                <v-text-field v-model.number="currentItem.degats_humains.expulses" label="Expulsés" type="number" outlined dense />
+              </v-col>
+            </v-row>
+
+            <!-- Dégâts matériels -->
+            <h5 class="mt-4">Dégâts Matériels</h5>
+            <v-row>
+              <v-col cols="12" md="4">
+                <v-text-field v-model.number="currentItem.degats_materiels.degat_vehicules" label="Véhicules endommagés" type="number" outlined dense />
+              </v-col>
+              <v-col cols="12" md="4">
+                <v-text-field v-model.number="currentItem.degats_materiels.degat_batiments" label="Bâtiments endommagés" type="number" outlined dense />
+              </v-col>
+              <v-col cols="12" md="4">
+                <v-text-field v-model.number="currentItem.degats_materiels.degat_infrastructures" label="Infrastructures endommagées" type="number" outlined dense />
+              </v-col>
+            </v-row>
+
+            <v-textarea v-model="currentItem.degats_materiels.autres_degats" label="Autres dégâts" outlined dense />
           </v-form>
         </v-card-text>
+
         <v-card-actions>
-          <v-spacer></v-spacer>
-          <v-btn color="blue darken-1" text @click="saveEdit"
-            >Enregistrer</v-btn
-          >
-          <v-btn color="red darken-1" text @click="closeEditDialog"
-            >Annuler</v-btn
-          >
+          <v-spacer />
+          <v-btn color="blue darken-1" text @click="saveEdit">Enregistrer</v-btn>
+          <v-btn color="red darken-1" text @click="closeEditDialog">Annuler</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -362,7 +233,15 @@
 <script>
 import axios from "axios";
 
+const ES_URL = "http://41.79.235.212:9200";
+const INDEX = "intel_v1";
+const AUTH = {
+  username: "elastic",
+  password: "ZuCI2sJBt3M=CMph9Y47",
+};
+
 export default {
+  name: "Search",
   data() {
     return {
       searchQuery: "",
@@ -372,8 +251,13 @@ export default {
       results: [],
       loading: false,
       menu: false,
+
       provinceOptions: [],
       eventOptions: [],
+
+      editDialog: false,
+      currentItem: this.emptyItem(),
+
       headers: [
         { text: "Date", value: "date_event" },
         { text: "Province", value: "province_region" },
@@ -383,66 +267,143 @@ export default {
         { text: "Document", value: "document", align: "center" },
         { text: "Actions", value: "actions", align: "center", sortable: false },
       ],
-      currentItem: {
-        degats_humains: {},
-        degats_materiels: {},
-      },
     };
   },
+
   computed: {
     formattedDateRange() {
-      if (this.searchDateRange.length === 2) {
-        return `${this.formatDate(this.searchDateRange[0])} - ${this.formatDate(
-          this.searchDateRange[1]
-        )}`;
+      if (Array.isArray(this.searchDateRange) && this.searchDateRange.length === 2) {
+        const [start, end] = this.searchDateRange;
+        return `${this.formatDate(start)} - ${this.formatDate(end)}`;
       }
       return "";
     },
   },
+
   methods: {
+    emptyItem() {
+      return {
+        id: null,
+        acteur1: "",
+        acteur2: "",
+        assoc_acteur1: "",
+        assoc_acteur2: "",
+        categorie: "",
+        date_event: "",
+        description: "",
+        event: "",
+        geoprecision: "",
+        groupement_quartier: "",
+        latitude: null,
+        longitude: null,
+        localite_village_lieuprecis: "",
+        pays: "",
+        province_region: "",
+        secteur_chefferie_commune: "",
+        source: "",
+        territoire_ville: "",
+        degats_humains: {
+          blesses: 0,
+          enleves_disparus: 0,
+          expulses: 0,
+          morts: 0,
+        },
+        degats_materiels: {
+          autres_degats: "",
+          degat_batiments: 0,
+          degat_infrastructures: 0,
+          degat_vehicules: 0,
+        },
+      };
+    },
+
+    formatDate(value) {
+      if (!value) return "-";
+      try {
+        const options = { year: "numeric", month: "2-digit", day: "2-digit" };
+        return new Date(value).toLocaleDateString(undefined, options);
+      } catch {
+        return value;
+      }
+    },
+
+    clearDate() {
+      this.searchDateRange = [];
+    },
+    clearProvince() {
+      this.searchProvince = "";
+    },
+    clearEvent() {
+      this.searchEvent = "";
+    },
+
+    viewDetails(id) {
+      this.$router.push({ name: "IncidentDetails", params: { id } });
+    },
+
     async performSearch() {
       this.loading = true;
+
       try {
-        let queryParts = [];
+        const must = [];
+        const filter = [];
 
-        // Full-text search query (if any)
-        if (this.searchQuery) {
-          queryParts.push(`${this.searchQuery}`);
+        // Full text sur description (tu peux ajouter d'autres champs si tu veux)
+        if (this.searchQuery && this.searchQuery.trim()) {
+          must.push({
+            multi_match: {
+              query: this.searchQuery.trim(),
+              fields: ["description"],
+              type: "best_fields",
+            },
+          });
         }
 
-        // Date range filter (if selected)
-        if (this.searchDateRange.length === 2) {
+        // Date range
+        if (Array.isArray(this.searchDateRange) && this.searchDateRange.length === 2) {
           const [startDate, endDate] = this.searchDateRange;
-          queryParts.push(`date_event:[${startDate} TO ${endDate}]`);
-        }
-
-        // Event filter (e.g., "Expulsion")
-        if (this.searchEvent) {
-          queryParts.push(`event:${this.searchEvent}`);
-        }
-
-        // Province filter (e.g., "Nord-Kivu")
-        if (this.searchProvince) {
-          //queryParts.push(`province_region.keyword:${this.searchProvince}`);
-          queryParts.push(`province_region:${this.searchProvince}`);
-        }
-
-        // Construct the final query by joining the query parts with AND
-        const query = queryParts.join(" AND ");
-
-        // Perform the search request to Elasticsearch
-        const response = await axios.get(
-          "http://localhost:9200/intel_v1/_search",
-          {
-            params: { q: query },
-            auth: {
-          username: 'elastic',
-          password: 'Jm82icR+PUlNJQKNntUy'
-        },
+          if (startDate && endDate) {
+            filter.push({
+              range: {
+                date_event: {
+                  gte: startDate,
+                  lte: endDate,
+                },
+              },
+            });
           }
-        );
+        }
 
-        // Map and set the search results
+        // Event exact (keyword)
+        if (this.searchEvent) {
+          filter.push({ term: { event: this.searchEvent } });
+        }
+
+        // Province exact (keyword)
+        if (this.searchProvince) {
+          filter.push({ term: { province_region: this.searchProvince } });
+        }
+
+        const body = {
+          size: 200, // ajuste si besoin
+          sort: [{ date_event: { order: "desc" } }],
+          query: {
+            bool: {
+              must,
+              filter,
+            },
+          },
+        };
+
+        // si aucun filtre et aucune recherche, renvoyer tout
+        if (must.length === 0 && filter.length === 0) {
+          body.query = { match_all: {} };
+        }
+
+        const response = await axios.post(`${ES_URL}/${INDEX}/_search`, body, {
+          auth: AUTH,
+        });
+
         this.results = response.data.hits.hits.map((hit) => ({
           id: hit._id,
           ...hit._source,
@@ -453,140 +414,80 @@ export default {
         this.loading = false;
       }
     },
-    saveEdit() {
-      // Logic to save the edited item to the server
-      axios
-        .put(
-          `http://localhost:9200/intel_v1/_doc/${this.currentItem.id}`,
-          this.currentItem,
-          {
-            auth: {
-          username: 'elastic',
-          password: 'Jm82icR+PUlNJQKNntUy'
-        },
-          }
-        )
-        .then(() => {
-          this.performSearch(); // Refresh the data after saving
-          this.closeEditDialog();
-        })
-        .catch((error) => {
-          console.error("Erreur lors de la mise à jour de l'incident:", error);
+
+    async loadFilterOptions() {
+      try {
+        const body = {
+          size: 0,
+          aggs: {
+            provinces: { terms: { field: "province_region", size: 1000 } },
+            events: { terms: { field: "event", size: 1000 } },
+          },
+        };
+
+        const res = await axios.post(`${ES_URL}/${INDEX}/_search`, body, {
+          auth: AUTH,
         });
+
+        this.provinceOptions = (res.data.aggregations?.provinces?.buckets || []).map((b) => b.key);
+        this.eventOptions = (res.data.aggregations?.events?.buckets || []).map((b) => b.key);
+      } catch (error) {
+        console.error("Erreur lors du chargement des options Province/Event:", error);
+      }
+    },
+
+    editItem(item) {
+      // deep copy + garantie des objets imbriqués
+      const copy = JSON.parse(JSON.stringify(item));
+
+      copy.degats_humains = copy.degats_humains || {};
+      copy.degats_materiels = copy.degats_materiels || {};
+
+      this.currentItem = {
+        ...this.emptyItem(),
+        ...copy,
+        degats_humains: {
+          ...this.emptyItem().degats_humains,
+          ...copy.degats_humains,
+        },
+        degats_materiels: {
+          ...this.emptyItem().degats_materiels,
+          ...copy.degats_materiels,
+        },
+      };
+
+      this.editDialog = true;
     },
 
     closeEditDialog() {
       this.editDialog = false;
-      this.currentItem = { degats_humains: {}, degats_materiels: {} };
+      this.currentItem = this.emptyItem();
     },
 
-    editItem(item) {
-      // Deep copy the item to avoid directly modifying the table data
-      this.currentItem = JSON.parse(JSON.stringify(item));
-      if (!this.currentItem.degats_humains)
-        this.currentItem.degats_humains = {};
-      if (!this.currentItem.degats_materiels)
-        this.currentItem.degats_materiels = {};
-      this.editDialog = true;
-    },
-
-    async fetchProvinceOptions() {
+    async saveEdit() {
       try {
-        // Use GET request to retrieve up to 10,000 documents
-        const response = await axios.get(
-          "http://localhost:9200/intel_v1/_search",
-          {
-            auth: {
-          username: 'elastic',
-          password: 'Jm82icR+PUlNJQKNntUy'
-        },
-            params: { size: 10000 }, // Retrieve up to 10,000 documents
-          }
-        );
+        const { id, ...doc } = this.currentItem;
 
-        // Map through the results and extract the '_source' field (document data)
-        const incidents = response.data.hits.hits.map((hit) => hit._source);
+        if (!id) {
+          console.error("Impossible de sauvegarder: id manquant");
+          return;
+        }
 
-        // Extract unique provinces from the 'province_region' field using Set
-        const provinces = [
-          ...new Set(
-            incidents
-              .map((incident) => incident.province_region)
-              .filter(Boolean)
-          ),
-        ];
+        await axios.put(`${ES_URL}/${INDEX}/_doc/${id}`, doc, {
+          auth: AUTH,
+        });
 
-        // Set the province options, with a default "Toutes les provinces" option
-        //this.provinceOptions = ["Toutes les provinces", ...provinces];
-        this.provinceOptions = provinces;
-
-        // Log the results for debugging
-        console.log("Provinces retrieved:", this.provinceOptions);
+        await this.performSearch();
+        this.closeEditDialog();
       } catch (error) {
-        // Log the error for debugging purposes
-        console.error("Erreur lors de la récupération des provinces:", error);
+        console.error("Erreur lors de la mise à jour de l'incident:", error);
       }
-    },
-
-    async fetchEventOptions() {
-      try {
-        // Use GET request to retrieve up to 10,000 documents
-        const response = await axios.get(
-          "http://localhost:9200/intel_v1/_search",
-          {
-            auth: {
-          username: 'elastic',
-          password: 'Jm82icR+PUlNJQKNntUy'
-        },
-            params: { size: 10000 }, // Retrieve up to 10,000 documents
-          }
-        );
-
-        // Map through the results and extract the '_source' field (document data)
-        const incidents = response.data.hits.hits.map((hit) => hit._source);
-
-        // Extract unique events from the 'event' field using Set
-        const events = [
-          ...new Set(
-            incidents.map((incident) => incident.event).filter(Boolean)
-          ),
-        ];
-
-        // Set the event options, with a default "Tous les événements" option
-        //this.eventOptions = ["Tous les événements", ...events];
-        this.eventOptions = events;
-
-        // Log the results for debugging
-        console.log("Events retrieved:", this.eventOptions);
-      } catch (error) {
-        // Log the error for debugging purposes
-        console.error("Erreur lors de la récupération des événements:", error);
-      }
-    },
-    formatDate(date) {
-      const options = { year: "numeric", month: "2-digit", day: "2-digit" };
-      return new Date(date).toLocaleDateString(undefined, options);
-    },
-
-    clearDate() {
-      this.searchDateRange = [];
-    },
-
-    clearProvince() {
-      this.searchProvince = "";
-    },
-
-    clearEvent() {
-      this.searchEvent = "";
-    },
-
-    viewDetails(id) {
-      this.$router.push({ name: "IncidentDetails", params: { id } });
     },
   },
+
   mounted() {
-    this.fetchProvinceOptions();
-    this.fetchEventOptions();
+    this.loadFilterOptions();
+    this.performSearch(); // charge une première liste
   },
 };
 </script>
@@ -598,17 +499,17 @@ export default {
 }
 
 .filter-input {
-  border-radius: 8px;
+  border-radius: 0;
 }
 
 .search-bar {
-  background-color: #f5f5f5;
-  border-radius: 8px;
+  background-color: #ffffff;
+  border-radius: 0;
 }
 
 .search-button {
   font-weight: bold;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  box-shadow: none;
 }
 
 .clear-btn {

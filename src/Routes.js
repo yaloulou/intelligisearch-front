@@ -12,6 +12,7 @@ import PolDiploInfo from "./pages/Dashboard/PolDiploInfo.vue";
 import SearchPolDiplo from "./pages/Dashboard/SearchPolDiplo.vue";
 import ProfileDetails from "./pages/Dashboard/ProfileDetails.vue";
 import MapDiplo from "./pages/Dashboard/MapDiplo.vue";
+import Observations from "./pages/Dashboard/Observations.vue";
 
 // Core
 import Typography from "@/pages/Core/Typography/Typography";
@@ -49,6 +50,7 @@ import Calendar from "@/pages/Extra/Calendar/Calendar";
 import Invoice from "@/pages/Extra/Invoice/Invoice";
 import SearchResult from "@/pages/Extra/SearchResult/SearchResult";
 import TimeLine from "@/pages/Extra/TimeLine/TemeLine";
+import Events from "@/pages/Dashboard/Events";
 
 // Charts
 import ChartsOverview from "@/pages/Charts/Overview/ChartsOverview";
@@ -211,6 +213,12 @@ export default new Router({
           component: MapDiplo,
         },
 
+        {
+          path: "/observations",
+          name: "Observations",
+          component: Observations,
+        },
+
         // Tables
         {
           path: "/tables/basic",
@@ -329,6 +337,11 @@ export default new Router({
           path: "/extra/timeLine",
           name: "TimeLine",
           component: TimeLine,
+        },
+        {
+          path: "/extra/events",
+          name: "Events",
+          component: Events,
         },
 
         // Core

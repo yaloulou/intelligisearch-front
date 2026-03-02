@@ -69,7 +69,7 @@ export default {
         },
         { title: "Recherche", icon: "mdi-magnify", link: "/search" },
         {
-          title: "Profilage Pol.Diplo",
+          title: "IntelStack",
           icon: "mdi-chart-bubble", // Suggests profiling and data analysis
           link: "/poldiplo",
         },
@@ -79,9 +79,19 @@ export default {
           link: "/searchpoldiplo",
         },
         {
+          title: "Observations",
+          icon: "mdi-eye-outline", // Represents observation/monitoring
+          link: "/observations",
+        },
+        {
           title: "Carte diplomatique",
           icon: "mdi-map-marker", // Represents a map or location
           link: "/mapdiplo",
+        },
+        {
+          title: "Événements",
+          icon: "mdi-calendar-clock", // Represents events/calendar
+          link: "/extra/events",
         },
       ],
       sidebarWidth: 240,

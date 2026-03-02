@@ -51,4 +51,8 @@ export default {
     email: "admin@flatlogic.com",
     password: "password",
   },
+  elasticsearch: {
+    user: "elastic",
+    password: "ZuCI2sJBt3M=CMph9Y47",
+  },
 };
