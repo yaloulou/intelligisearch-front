@@ -51,6 +51,7 @@ import Invoice from "@/pages/Extra/Invoice/Invoice";
 import SearchResult from "@/pages/Extra/SearchResult/SearchResult";
 import TimeLine from "@/pages/Extra/TimeLine/TemeLine";
 import Events from "@/pages/Dashboard/Events";
+import Links from "@/pages/Dashboard/Links";
 
 // Charts
 import ChartsOverview from "@/pages/Charts/Overview/ChartsOverview";
@@ -342,6 +343,11 @@ export default new Router({
           path: "/extra/events",
           name: "Events",
           component: Events,
+        },
+        {
+          path: "/extra/links",
+          name: "Links",
+          component: Links,
         },
 
         // Core

@@ -51,7 +51,7 @@
             <h3>Événements (events_v1)</h3>
             <v-spacer></v-spacer>
             <v-btn color="primary" @click="openAddDialog">
-              Nouvel événement
+              Nouvel événement 0
             </v-btn>
           </v-card-title>
           <v-card-text>
@@ -207,19 +207,41 @@
             <v-tab-item>
               <v-container>
                 <v-data-table
-                  v-if="selectedEventData.participants.length"
+                  v-if="participantsEnriched.length"
                   :headers="participantsHeaders"
-                  :items="selectedEventData.participants"
+                  :items="participantsEnriched"
                   class="mt-4"
                   hide-default-footer
                 >
-                  <template v-slot:item.entity_id="{ item }">
+                  <template v-slot:item.name="{ item }">
                     <router-link :to="`/poldiplo?id=${item.entity_id}`" class="primary--text">
-                      {{ item.entity_id }}
+                      {{ item.name }}
                     </router-link>
                   </template>
+                  <template v-slot:item.entity_type="{ item }">
+                    <v-chip x-small
+                      :color="item.entity_type === 'person' ? 'blue' : item.entity_type === 'organization' ? 'green' : 'grey'"
+                      text-color="white"
+                    >
+                      {{ item.entity_type }}
+                    </v-chip>
+                  </template>
                   <template v-slot:item.role="{ item }">
-                    <v-chip small>{{ item.role }}</v-chip>
+                    <v-chip small color="info" text-color="white">{{ item.role }}</v-chip>
+                  </template>
+                  <template v-slot:item.aliases="{ item }">
+                    <div v-if="item.aliases && item.aliases.length">
+                      <v-chip
+                        v-for="alias in item.aliases.slice(0, 2)"
+                        :key="alias"
+                        x-small
+                        class="mr-1 mb-1"
+                      >
+                        {{ alias }}
+                      </v-chip>
+                      <span v-if="item.aliases.length > 2" class="text-caption grey--text">+{{ item.aliases.length - 2 }}</span>
+                    </div>
+                    <span v-else class="grey--text">-</span>
                   </template>
                 </v-data-table>
                 <div v-else class="text-center grey--text py-6">
@@ -361,6 +383,17 @@
         </v-card-text>
       </v-card>
     </v-dialog>
+
+    <!-- Snackbar for notifications -->
+    <v-snackbar
+      v-model="snackbar.show"
+      :color="snackbar.color"
+      timeout="4000"
+      bottom
+      right
+    >
+      {{ snackbar.message }}
+    </v-snackbar>
 
     <!-- Add/Edit Event Dialog -->
     <v-dialog v-model="addEventDialog" max-width="800px" scrollable>
@@ -734,8 +767,10 @@ export default {
       selectedEntities: [],
       entityRoles: ['participant', 'observateur', 'responsable', 'victime', 'suspect', 'auteur', 'mediateur', 'autre'],
       participantsHeaders: [
-        { text: 'ID Entité', value: 'entity_id' },
-        { text: 'Rôle', value: 'role' }
+        { text: 'Nom', value: 'name' },
+        { text: 'Type', value: 'entity_type' },
+        { text: 'Rôle', value: 'role' },
+        { text: 'Alias', value: 'aliases', sortable: false }
       ],
       headers: [
         { text: 'Titre', value: 'title', sortable: true },
@@ -769,7 +804,13 @@ export default {
         classification: { level: 'OUVERT', compartments: [] },
         audit: { created_at: '', updated_at: '' }
       },
-      events: []
+      events: [],
+      participantsEnriched: [],
+      snackbar: {
+        show: false,
+        message: '',
+        color: 'success'
+      }
     };
   },
   watch: {
@@ -792,6 +833,11 @@ export default {
     this.fetchEvents();
   },
   methods: {
+    showSnackbar(message, color = 'success') {
+      this.snackbar.message = message;
+      this.snackbar.color = color;
+      this.snackbar.show = true;
+    },
     async searchEntities(val) {
       if (!val || val.length < 2) {
         this.entitySuggestions = [];
@@ -864,6 +910,7 @@ export default {
         })) || [];
       } catch (e) {
         console.error('Erreur recherche entités:', e);
+        this.showSnackbar('Erreur lors de la recherche d\'entités', 'error');
         this.entitySuggestions = [];
       } finally {
         this.searchingEntities = false;
@@ -904,7 +951,7 @@ export default {
         })) || [];
       } catch (e) {
         console.error("Erreur fetch events:", e);
-        this.$vuetify.framework.notifier.notify({ message: "Erreur lors du chargement des événements", color: "error" });
+        this.showSnackbar('Erreur lors du chargement des événements', 'error');
       } finally {
         this.loading = false;
       }
@@ -931,9 +978,51 @@ export default {
              imp.expulses > 0 || imp.degat_vehicules > 0 || imp.degat_batiments > 0 ||
              imp.degat_infrastructures > 0;
     },
-    selectEvent(event) {
+    async selectEvent(event) {
       this.selectedEventData = JSON.parse(JSON.stringify(event));
+      await this.enrichParticipants();
       this.detailsDialog = true;
+    },
+    async enrichParticipants() {
+      if (!this.selectedEventData || !this.selectedEventData.participants.length) {
+        this.participantsEnriched = [];
+        return;
+      }
+
+      try {
+        const enriched = [];
+        for (const participant of this.selectedEventData.participants) {
+          try {
+            // Récupérer les infos complètes de l'entité
+            const res = await axios.get(
+              `${this.ES_BASE_URL}/entities_v1/_doc/${participant.entity_id}`,
+              { auth: this.ES_AUTH }
+            );
+
+            const source = res.data._source;
+            enriched.push({
+              entity_id: participant.entity_id,
+              name: source.name || 'Sans nom',
+              entity_type: source.entity_type || 'unknown',
+              role: participant.role,
+              aliases: source.aliases || []
+            });
+          } catch (e) {
+            // Si l'entité n'existe plus, utiliser juste l'ID
+            enriched.push({
+              entity_id: participant.entity_id,
+              name: 'Entité supprimée',
+              entity_type: 'unknown',
+              role: participant.role,
+              aliases: []
+            });
+          }
+        }
+        this.participantsEnriched = enriched;
+      } catch (e) {
+        console.error('Erreur enrichissement participants:', e);
+        this.participantsEnriched = this.selectedEventData.participants;
+      }
     },
     openAddDialog() {
       this.editingEvent = null;
@@ -1020,16 +1109,16 @@ export default {
           `${this.ES_BASE_URL}/events_v1/_doc/${event._id}`,
           { auth: this.ES_AUTH }
         );
-        this.$vuetify.framework.notifier.notify({ message: "Événement supprimé avec succès", color: "success" });
+        this.showSnackbar('Événement supprimé avec succès', 'success');
         await this.fetchEvents();
       } catch (e) {
         console.error("Erreur suppression event:", e);
-        this.$vuetify.framework.notifier.notify({ message: "Erreur lors de la suppression", color: "error" });
+        this.showSnackbar('Erreur lors de la suppression', 'error');
       }
     },
     async saveEvent() {
       if (!this.formEvent.title || !this.formEvent.event_type) {
-        this.$vuetify.framework.notifier.notify({ message: "Veuillez remplir les champs obligatoires", color: "error" });
+        this.showSnackbar('Veuillez remplir les champs obligatoires', 'error');
         return;
       }
 
@@ -1039,20 +1128,52 @@ export default {
 
         // Convertir les datetime-local en ISO 8601
         const formatDateTime = (dt) => {
-          if (!dt) return new Date().toISOString();
-          if (dt.includes('T')) {
-            // C'est déjà un ISO ou datetime-local
-            return new Date(dt).toISOString();
-          }
-          return dt;
+          if (!dt || dt === '') return new Date().toISOString();
+          const date = new Date(dt);
+          if (isNaN(date.getTime())) return new Date().toISOString();
+          return date.toISOString();
         };
 
-        const event = {
-          ...this.formEvent,
+        // Convertir selectedEntities en participants (uniquement les champs du mapping)
+        const participants = this.selectedEntities.map(entity => ({
+          entity_id: entity.entity_id,
+          role: entity.role
+        }));
+
+        // Construire l'objet event avec validation des types
+        const eventToSave = {
           event_id: eventId,
+          title: this.formEvent.title || '',
+          description: this.formEvent.description || '',
+          event_type: this.formEvent.event_type || '',
           time: {
             start: formatDateTime(this.formEvent.time.start),
             end: formatDateTime(this.formEvent.time.end),
+          },
+          location: {
+            province: this.formEvent.location.province || '',
+            territoire: this.formEvent.location.territoire || '',
+            address: this.formEvent.location.address || '',
+            geo: {
+              lat: parseFloat(this.formEvent.location.geo.lat) || 0,
+              lon: parseFloat(this.formEvent.location.geo.lon) || 0,
+            }
+          },
+          impact: {
+            morts: parseInt(this.formEvent.impact.morts) || 0,
+            blesses: parseInt(this.formEvent.impact.blesses) || 0,
+            enleves_disparus: parseInt(this.formEvent.impact.enleves_disparus) || 0,
+            expulses: parseInt(this.formEvent.impact.expulses) || 0,
+            degat_vehicules: parseInt(this.formEvent.impact.degat_vehicules) || 0,
+            degat_batiments: parseInt(this.formEvent.impact.degat_batiments) || 0,
+            degat_infrastructures: parseInt(this.formEvent.impact.degat_infrastructures) || 0,
+            autres_degats: this.formEvent.impact.autres_degats || ''
+          },
+          participants: participants,
+          tags: Array.isArray(this.formEvent.tags) ? this.formEvent.tags : [],
+          classification: {
+            level: this.formEvent.classification.level || 'OUVERT',
+            compartments: Array.isArray(this.formEvent.classification.compartments) ? this.formEvent.classification.compartments : []
           },
           audit: this.editingEvent ? {
             ...this.formEvent.audit,
@@ -1063,18 +1184,7 @@ export default {
           },
         };
 
-        // Convertir selectedEntities en participants
-        const participants = this.selectedEntities.map(entity => ({
-          entity_id: entity.entity_id,
-          role: entity.role,
-          name: entity.name,
-          entity_type: entity.entity_type
-        }));
-
-        const eventToSave = {
-          ...event,
-          participants
-        };
+        console.log('Données à envoyer:', JSON.stringify(eventToSave, null, 2));
 
         await axios.post(
           `${this.ES_BASE_URL}/events_v1/_doc/${eventId}`,
@@ -1082,10 +1192,8 @@ export default {
           { auth: this.ES_AUTH }
         );
 
-        this.$vuetify.framework.notifier.notify({ 
-          message: this.editingEvent ? "Événement modifié avec succès" : "Événement créé avec succès", 
-          color: "success" 
-        });
+        const successMessage = this.editingEvent ? "Événement modifié avec succès" : "Événement créé avec succès";
+        this.showSnackbar(successMessage, 'success');
         this.addEventDialog = false;
         this.selectedEntities = [];
         this.entityToAdd = null;
@@ -1093,7 +1201,9 @@ export default {
         await this.fetchEvents();
       } catch (e) {
         console.error("Erreur lors de l'enregistrement:", e);
-        this.$vuetify.framework.notifier.notify({ message: "Erreur lors de l'enregistrement", color: "error" });
+        const errorMessage = e.response?.data?.error?.reason || e.message || "Erreur lors de l'enregistrement";
+        console.error("Détail de l'erreur:", errorMessage);
+        this.showSnackbar(`Erreur: ${errorMessage}`, 'error');
       }
     }
   }

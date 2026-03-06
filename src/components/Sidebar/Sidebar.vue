@@ -93,6 +93,11 @@ export default {
           icon: "mdi-calendar-clock", // Represents events/calendar
           link: "/extra/events",
         },
+        {
+          title: "Relations",
+          icon: "mdi-sitemap", // Represents network/relationships
+          link: "/extra/links",
+        },
       ],
       sidebarWidth: 240,
       sidebarMinWidth: 96,
