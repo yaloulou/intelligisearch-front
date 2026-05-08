@@ -671,19 +671,12 @@
 </template>
 
 <script>
-import axios from "axios";
-import config from "@/config";
+import api from "@/services/api";
 
 export default {
   name: 'Links',
   data() {
     return {
-      ES_BASE_URL: config.URL_BASE,
-      ES_AUTH: {
-        username: "elastic",
-        password: "ZuCI2sJBt3M=CMph9Y47",
-      },
-
       search: '',
       selectedLinkType: null,
       selectedFromEntity: null,
@@ -881,36 +874,20 @@ export default {
       this.searchingEntities = true;
 
       try {
-        const res = await axios.post(
-          `${this.ES_BASE_URL}/entities_v1/_search`,
-          {
-            query: {
-              match: {
-                name: {
-                  query: val,
-                  fuzziness: 'AUTO'
-                }
-              }
-            },
-            size: 20,
-            _source: ['name', 'entity_type', 'entity_id', 'aliases']
-          },
-          { auth: this.ES_AUTH }
-        );
+        const res = await api.entities.search(val, 20);
+        const items = res.data?.items || [];
 
-        console.log('Résultats recherche entités:', res.data?.hits?.hits?.length);
-
-        this.entitySuggestions = res.data?.hits?.hits?.map((h) => ({
-          text: h._source.name || 'Sans nom',
-          value: h._id,
-          entity_type: h._source.entity_type || 'unknown',
-          entity_id: h._source.entity_id,
-          aliases: h._source.aliases,
-        })) || [];
+        this.entitySuggestions = items.map((item) => ({
+          text: item.name || item.text || 'Sans nom',
+          value: item.id,
+          entity_type: item.entity_type || 'unknown',
+          entity_id: item.id,
+          aliases: item.aliases,
+        }));
 
         // Remplir le cache
-        res.data?.hits?.hits?.forEach(h => {
-          this.$set(this.entityCache, h._id, h._source.name || 'Sans nom');
+        items.forEach((item) => {
+          this.$set(this.entityCache, item.id, item.name || item.text || 'Sans nom');
         });
       } catch (e) {
         console.error('Erreur recherche entités:', e);
@@ -970,24 +947,16 @@ export default {
       if (!missingIds.length) return;
 
       try {
-        const res = await axios.post(
-          `${this.ES_BASE_URL}/entities_v1/_search`,
-          {
-            query: {
-              terms: {
-                _id: missingIds,
-              },
-            },
-            size: missingIds.length,
-            _source: ['name'],
-          },
-          { auth: this.ES_AUTH }
+        await Promise.all(
+          missingIds.map(async (id) => {
+            try {
+              const res = await api.entities.get(id);
+              this.$set(this.entityCache, id, res.data?.name || id);
+            } catch {
+              // entité introuvable, garder l'id
+            }
+          })
         );
-
-        const hits = res.data?.hits?.hits || [];
-        hits.forEach((hit) => {
-          this.$set(this.entityCache, hit._id, hit._source?.name || hit._id);
-        });
       } catch (e) {
         console.error('Erreur enrichissement noms entités:', e);
       }
@@ -995,37 +964,17 @@ export default {
     async fetchLinks() {
       this.loading = true;
       try {
-        const query = {
-          query: { match_all: {} },
-          sort: [{ "time.start": { order: "desc" } }],
+        const res = await api.links.search({
+          linkType: this.selectedLinkType,
+          fromEntity: this.selectedFromEntity,
+          toEntity: this.selectedToEntity,
           size: 500,
-        };
+        });
 
-        // Appliquer les filtres
-        if (this.selectedLinkType || this.selectedFromEntity || this.selectedToEntity) {
-          query.query = { bool: { must: [] } };
-
-          if (this.selectedLinkType) {
-            query.query.bool.must.push({ term: { link_type: this.selectedLinkType } });
-          }
-          if (this.selectedFromEntity) {
-            query.query.bool.must.push({ term: { from_entity: this.selectedFromEntity } });
-          }
-          if (this.selectedToEntity) {
-            query.query.bool.must.push({ term: { to_entity: this.selectedToEntity } });
-          }
-        }
-
-        const res = await axios.post(
-          `${this.ES_BASE_URL}/links_v1/_search`,
-          query,
-          { auth: this.ES_AUTH }
-        );
-
-        this.links = res.data?.hits?.hits?.map((h) => ({
-          ...h._source,
-          _id: h._id,
-        })) || [];
+        this.links = (res.data?.items || []).map((item) => ({
+          ...item,
+          _id: item._id || item.id,
+        }));
 
         await this.hydrateEntityNamesFromLinks(this.links);
       } catch (e) {
@@ -1099,14 +1048,11 @@ export default {
       }
       
       try {
-        const res = await axios.get(
-          `${this.ES_BASE_URL}/entities_v1/_doc/${entityId}`,
-          { auth: this.ES_AUTH }
-        );
-        
-        const source = res.data._source;
+        const res = await api.entities.get(entityId);
+
+        const source = res.data;
         this.$set(this.entityCache, entityId, source.name || 'Sans nom');
-        
+
         // Ajouter à entitySuggestions s'il n'y est pas déjà
         const exists = this.entitySuggestions.some(s => s.value === entityId);
         if (!exists) {
@@ -1114,17 +1060,17 @@ export default {
             text: source.name || 'Sans nom',
             value: entityId,
             entity_type: source.entity_type || 'unknown',
-            entity_id: source.entity_id,
+            entity_id: source.id || entityId,
             attributes: source.attributes,
             aliases: source.aliases,
           });
         }
-        
+
         return {
           value: entityId,
           text: source.name || 'Sans nom',
           entity_type: source.entity_type || 'unknown',
-          entity_id: source.entity_id,
+          entity_id: source.id || entityId,
           aliases: source.aliases
         };
       } catch (e) {
@@ -1162,10 +1108,7 @@ export default {
       if (!confirm('Êtes-vous sûr de vouloir supprimer ce lien ?')) return;
 
       try {
-        await axios.delete(
-          `${this.ES_BASE_URL}/links_v1/_doc/${link._id}`,
-          { auth: this.ES_AUTH }
-        );
+        await api.links.delete(link._id);
         this.showSnackbar('Lien supprimé avec succès', 'success');
         await this.fetchLinks();
       } catch (e) {
@@ -1180,9 +1123,6 @@ export default {
       }
 
       try {
-        const linkId = this.formLink.link_id || 
-                       `lnk_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
         const formatDateTime = (dt) => {
           if (!dt || dt === '') return null;
           const date = new Date(dt);
@@ -1191,7 +1131,6 @@ export default {
         };
 
         const linkToSave = {
-          link_id: linkId,
           from_entity: this.formLink.from_entity || '',
           to_entity: this.formLink.to_entity || '',
           link_type: this.formLink.link_type || '',
@@ -1215,13 +1154,11 @@ export default {
           tags: Array.isArray(this.formLink.tags) ? this.formLink.tags : []
         };
 
-        console.log('Données à envoyer:', JSON.stringify(linkToSave, null, 2));
-
-        await axios.post(
-          `${this.ES_BASE_URL}/links_v1/_doc/${linkId}`,
-          linkToSave,
-          { auth: this.ES_AUTH }
-        );
+        if (this.editingLink && this.editingLink._id) {
+          await api.links.update(this.editingLink._id, linkToSave);
+        } else {
+          await api.links.create(linkToSave);
+        }
 
         const successMessage = this.editingLink ? "Lien modifié avec succès" : "Lien créé avec succès";
         this.showSnackbar(successMessage, 'success');

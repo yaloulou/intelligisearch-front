@@ -7,42 +7,42 @@
           <!-- Informations générales -->
           <v-col cols="12" sm="6">
             <strong>Province/Région :</strong>
-            {{ incident.province_region || "Non défini" }}
+            {{ incident.location?.province_region || "Non défini" }}
           </v-col>
           <v-col cols="12" sm="6">
             <strong>Territoire/Ville :</strong>
-            {{ incident.territoire_ville || "Non défini" }}
+            {{ incident.location?.territoire_ville || "Non défini" }}
           </v-col>
           <v-col cols="12" sm="6">
             <strong>Date de l'incident :</strong>
             {{
-              incident.date_event
-                ? formatDate(incident.date_event)
+              incident.event?.date_event
+                ? formatDate(incident.event.date_event)
                 : "Non défini"
             }}
           </v-col>
           <v-col cols="12" sm="6">
-            <strong>Événement :</strong>
-            {{ incident.event || "Non défini" }}
+            <strong>Type d'événement :</strong>
+            {{ incident.event?.event_type || "Non défini" }}
           </v-col>
 
           <!-- Détails supplémentaires -->
           <v-col cols="12" sm="6">
             <strong>Localité/Village/Lieu précis :</strong>
-            {{ incident.localite_village_lieuprecis || "Non défini" }}
+            {{ incident.location?.localite_village_lieuprecis || "Non défini" }}
           </v-col>
           <v-col cols="12" sm="6">
             <strong>Acteurs impliqués :</strong>
-            {{ incident.acteur1 || "Non défini" }} /
-            {{ incident.acteur2 || "Non défini" }}
+            {{ incident.actors?.[0]?.nom || "Non défini" }} /
+            {{ incident.actors?.[1]?.nom || "Non défini" }}
           </v-col>
           <v-col cols="12" sm="6">
             <strong>Latitude :</strong>
-            {{ incident.latitude || "Non défini" }}
+            {{ incident.location?.latitude || "Non défini" }}
           </v-col>
           <v-col cols="12" sm="6">
             <strong>Longitude :</strong>
-            {{ incident.longitude || "Non défini" }}
+            {{ incident.location?.longitude || "Non défini" }}
           </v-col>
 
           <!-- Dégâts humains -->
@@ -113,11 +113,11 @@
           <!-- Autres informations -->
           <v-col cols="12">
             <strong>Description de l'incident :</strong>
-            {{ incident.description || "Non défini" }}
+            {{ incident.event?.description || "Non défini" }}
           </v-col>
           <v-col cols="12">
             <strong>Catégorie :</strong>
-            {{ incident.categorie || "Non défini" }}
+            {{ incident.event?.categorie || "Non défini" }}
           </v-col>
 
           <!-- Comment Section -->
@@ -148,7 +148,7 @@
 </template>
 
 <script>
-import axios from "axios";
+import api from "@/services/api";
 
 export default {
   data() {
@@ -162,18 +162,10 @@ export default {
   },
   methods: {
     async fetchIncidentDetails() {
-      const incidentId = this.$route.params.id; // Obtenez l'ID de l'incident depuis les paramètres de la route
+      const incidentId = this.$route.params.id;
       try {
-        const response = await axios.get(
-          `http://localhost:9200/intel_v1/_doc/${incidentId}`,
-          {
-            auth: {
-          username: 'elastic',
-          password: 'Jm82icR+PUlNJQKNntUy'
-        },
-          }
-        );
-        this.incident = response.data._source || {}; // Assignez les données de l'incident ou un objet vide
+        const response = await api.intel.get(incidentId);
+        this.incident = response.data || {};
       } catch (error) {
         console.error(
           "Erreur lors de la récupération des détails de l'incident :",

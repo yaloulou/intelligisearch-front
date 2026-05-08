@@ -73,21 +73,21 @@ export default {
           icon: "mdi-chart-bubble", // Suggests profiling and data analysis
           link: "/poldiplo",
         },
-        {
+        /* {
           title: "Recherche profile",
           icon: "mdi-account-search", // Clearly indicates profile search
           link: "/searchpoldiplo",
-        },
+        }, */
         {
           title: "Observations",
           icon: "mdi-eye-outline", // Represents observation/monitoring
           link: "/observations",
         },
-        {
+        /* {
           title: "Carte diplomatique",
           icon: "mdi-map-marker", // Represents a map or location
           link: "/mapdiplo",
-        },
+        }, */
         {
           title: "Événements",
           icon: "mdi-calendar-clock", // Represents events/calendar
@@ -95,8 +95,14 @@ export default {
         },
         {
           title: "Relations",
-          icon: "mdi-sitemap", // Represents network/relationships
+          icon: "mdi-sitemap",
           link: "/extra/links",
+        },
+        {
+          title: "Gestion utilisateurs",
+          icon: "mdi-account-group",
+          link: "/admin/users",
+          adminOnly: true,
         },
       ],
       sidebarWidth: 240,
@@ -116,23 +122,17 @@ export default {
         this.TOGGLE_DRAWER();
       },
     },
-    userEmail() {
-      // Get the user's email from localStorage or Vuex
-      return localStorage.getItem("userEmail"); // Or from Vuex: this.$store.state.auth.user.email
+    userRole() {
+      return this.$store.getters["auth/role"];
     },
     filteredItems() {
-      // Filter the sidebar items based on the user's email
-      if (this.userEmail === "admin@lisu.com") {
-        return this.items; // Show all items for admin
-      } else if (this.userEmail === "or@lisu.com") {
-        // Filter out items that shouldn't be visible to the current user
-        return this.items.filter(
-          (item) => item.title !== "Dashboard" && item.title !== "Recherche"
-        );
-        //return this.items.filter((item) => item.title !== "Dashboard");
-      } else {
-        return this.items.filter((item) => item.title !== "Dashboard");
-      }
+      const role = this.userRole;
+      const officierHidden = ["Événements", "Relations", "IntelStack"];
+      return this.items.filter((item) => {
+        if (item.adminOnly) return role === "admin";
+        if (officierHidden.includes(item.title) && role === "officier") return false;
+        return true;
+      });
     },
   },
   methods: {

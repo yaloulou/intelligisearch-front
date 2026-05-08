@@ -1,6 +1,6 @@
 @import "../../styles/app";
 body {
-  background-color: #F6F7FF !important
+  background-color: #f0f2f5 !important
 }
 .container {
   font-family: "Roboto", "Helvetica", "Arial", sans-serif;
@@ -9,7 +9,7 @@ body {
   .main-part {
     width: 100%;
     height: 100vh;
-    background-color: var(--v-primary-base);
+    background-color: #1a2744;
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -35,7 +35,7 @@ body {
   .login-part {
     width: 100%;
     height: 100vh;
-    background-color: #F6F7FF;
+    background-color: #f0f2f5;
     overflow-y: auto;
     .login-wrapper {
       width: 320px;
@@ -44,14 +44,15 @@ body {
         color: #4a4a4a;
       }
       .v-btn.google {
-        box-shadow: $card-shadow!important;
+        box-shadow: none !important;
+        border: 1px solid #dde3ec !important;
       }
       .v-tabs {
         .v-tab {
           font-size: 18px;
         }
         .v-item-group {
-          background-color: #F6F7FF;
+          background-color: #f0f2f5;
         }
       }
 
@@ -59,7 +60,7 @@ body {
     .v-footer {
       position: absolute;
       bottom: 0;
-      background-color: #F6F7FF;
+      background-color: #f0f2f5;
     }
   }
 }

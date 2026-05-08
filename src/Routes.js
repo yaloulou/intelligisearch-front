@@ -85,11 +85,20 @@ import Maps from "@/pages/Documentation/pages/Maps/Maps";
 import Tables from "@/pages/Documentation/pages/Tables/Tables";
 import Structure from "@/pages/Documentation/pages/Structure/Structure";
 import Libs from "@/pages/Documentation/pages/Libs/Libs";
-import { isAuthenticated } from "./mixins/auth";
+import { isAuthenticated, getTokenPayload } from "./mixins/auth";
+import UsersAdmin from "@/pages/Admin/Users";
 
 Vue.use(Router);
 
-export default new Router({
+const Forbidden = {
+  render: (h) =>
+    h("v-container", { props: { fluid: true }, staticClass: "mt-12 text-center" }, [
+      h("h2", "403 — Accès refusé"),
+      h("p", "Vous ne disposez pas des droits nécessaires pour accéder à cette page."),
+    ]),
+};
+
+const router = new Router({
   routes: [
     {
       path: "/login",
@@ -161,10 +170,6 @@ export default new Router({
       redirect: "login",
       name: "Layout",
       component: Layout,
-      beforeEnter: (to, from, next) => {
-        let token = localStorage.getItem("token");
-        isAuthenticated(token) ? next() : next({ path: "/login" });
-      },
       children: [
         {
           path: "/dashboard",
@@ -427,7 +432,20 @@ export default new Router({
           name: "UserProfile",
           component: Profile,
         },
+
+        // Admin
+        {
+          path: "/admin/users",
+          name: "AdminUsers",
+          component: UsersAdmin,
+          meta: { roles: ["admin"] },
+        },
       ],
+    },
+    {
+      path: "/403",
+      name: "Forbidden",
+      component: Forbidden,
     },
     {
       path: "*",
@@ -436,3 +454,36 @@ export default new Router({
     },
   ],
 });
+
+router.beforeEach((to, from, next) => {
+  const publicPaths = ["/login", "/403"];
+  const isPublic =
+    publicPaths.includes(to.path) || to.path.startsWith("/documentation");
+  const token = localStorage.getItem("access_token");
+
+  // Already authenticated — skip login page
+  if (to.path === "/login" && token) {
+    return next({ path: "/board" });
+  }
+
+  // Public routes — allow
+  if (isPublic) return next();
+
+  // No token — redirect to login, save intended destination
+  if (!token) {
+    return next({ path: "/login", query: { redirect: to.fullPath } });
+  }
+
+  // Role-restricted route
+  const routeRoles = to.meta?.roles;
+  if (routeRoles && routeRoles.length > 0) {
+    const payload = getTokenPayload();
+    if (!payload || !routeRoles.includes(payload.role)) {
+      return next({ path: "/403" });
+    }
+  }
+
+  next();
+});
+
+export default router;

@@ -13,6 +13,8 @@
                   label="Rechercher par titre"
                   outlined
                   dense
+                  clearable
+                  @click:append="fetchEvents"
                 ></v-text-field>
               </v-col>
               <v-col cols="12" md="3">
@@ -50,8 +52,8 @@
           <v-card-title>
             <h3>Événements (events_v1)</h3>
             <v-spacer></v-spacer>
-            <v-btn color="primary" @click="openAddDialog">
-              Nouvel événement 0
+            <v-btn color="primary" v-if="canCreate('event')" @click="openAddDialog">
+              Nouvel événement
             </v-btn>
           </v-card-title>
           <v-card-text>
@@ -92,10 +94,10 @@
                 <v-btn x-small text @click.stop="selectEvent(item)">
                   Détails
                 </v-btn>
-                <v-btn x-small text @click.stop="editEvent(item)">
+                <v-btn x-small text v-if="canCreate('event')" @click.stop="editEvent(item)">
                   Modifier
                 </v-btn>
-                <v-btn x-small text color="error" @click.stop="deleteEvent(item)">
+                <v-btn x-small text color="error" v-if="canDelete('event')" @click.stop="deleteEvent(item)">
                   Supprimer
                 </v-btn>
               </template>
@@ -736,20 +738,14 @@
 </template>
 
 <script>
-import axios from "axios";
-
-import config from "@/config";
+import api from "@/services/api";
+import { PermissionsMixin } from "@/mixins/permissions";
 
 export default {
   name: 'Events',
+  mixins: [PermissionsMixin],
   data() {
     return {
-      ES_BASE_URL: config.URL_BASE,
-      ES_AUTH: {
-        username: "elastic",
-        password: "ZuCI2sJBt3M=CMph9Y47",
-      },
-
       search: '',
       selectedEventType: null,
       selectedClassification: null,
@@ -847,67 +843,17 @@ export default {
       this.searchingEntities = true;
 
       try {
-        const res = await axios.post(
-          `${this.ES_BASE_URL}/entities_v1/_search`,
-          {
-            query: {
-              bool: {
-                should: [
-                  {
-                    match: {
-                      name: {
-                        query: val,
-                        boost: 3,
-                        fuzziness: 'AUTO',
-                      },
-                    },
-                  },
-                  {
-                    match: {
-                      'name.keyword': {
-                        query: val,
-                        boost: 5,
-                      },
-                    },
-                  },
-                  {
-                    match: {
-                      aliases: {
-                        query: val,
-                        boost: 2,
-                      },
-                    },
-                  },
-                  {
-                    prefix: {
-                      'name.keyword': {
-                        value: val.toLowerCase(),
-                        boost: 4,
-                      },
-                    },
-                  },
-                ],
-                minimum_should_match: 1,
-              },
-            },
-            size: 20,
-            _source: ['name', 'entity_type', 'entity_id', 'attributes', 'aliases'],
-            sort: [
-              '_score',
-              { 'name.keyword': { order: 'asc' } }
-            ],
-          },
-          { auth: this.ES_AUTH }
-        );
+        const res = await api.entities.search(val, 20);
+        const items = res.data?.items || [];
 
-        this.entitySuggestions = res.data?.hits?.hits?.map((h) => ({
-          text: h._source.name || 'Sans nom',
-          value: h._id,
-          entity_type: h._source.entity_type || 'unknown',
-          entity_id: h._source.entity_id,
-          attributes: h._source.attributes,
-          aliases: h._source.aliases,
-        })) || [];
+        this.entitySuggestions = items.map((h) => ({
+          text: h.name || h.text || 'Sans nom',
+          value: h.id,
+          entity_type: h.entity_type || 'unknown',
+          entity_id: h.id,
+          attributes: h.attributes,
+          aliases: h.aliases,
+        }));
       } catch (e) {
         console.error('Erreur recherche entités:', e);
         this.showSnackbar('Erreur lors de la recherche d\'entités', 'error');
@@ -919,36 +865,15 @@ export default {
     async fetchEvents() {
       this.loading = true;
       try {
-        const query = {
-          query: { match_all: {} },
-          sort: [{ "time.start": { order: "desc" } }],
-          size: 500,
-        };
+        const params = { size: 500 };
+        if (this.selectedEventType) params.event_type = this.selectedEventType;
+        if (this.selectedClassification) params.classification_level = this.selectedClassification;
+        const res = await api.events.search(params);
 
-        // Appliquer les filtres
-        if (this.selectedEventType || this.selectedClassification) {
-          query.query = { bool: { must: [] } };
-
-          if (this.selectedEventType) {
-            query.query.bool.must.push({ term: { event_type: this.selectedEventType } });
-          }
-          if (this.selectedClassification) {
-            query.query.bool.must.push({
-              term: { "classification.level": this.selectedClassification },
-            });
-          }
-        }
-
-        const res = await axios.post(
-          `${this.ES_BASE_URL}/events_v1/_search`,
-          query,
-          { auth: this.ES_AUTH }
-        );
-
-        this.events = res.data?.hits?.hits?.map((h) => ({
-          ...h._source,
-          _id: h._id,
-        })) || [];
+        this.events = (res.data?.items || []).map((item) => ({
+          ...item,
+          _id: item._id || item.id,
+        }));
       } catch (e) {
         console.error("Erreur fetch events:", e);
         this.showSnackbar('Erreur lors du chargement des événements', 'error');
@@ -992,14 +917,9 @@ export default {
       try {
         const enriched = [];
         for (const participant of this.selectedEventData.participants) {
-          try {
-            // Récupérer les infos complètes de l'entité
-            const res = await axios.get(
-              `${this.ES_BASE_URL}/entities_v1/_doc/${participant.entity_id}`,
-              { auth: this.ES_AUTH }
-            );
-
-            const source = res.data._source;
+        try {
+            const res = await api.entities.get(participant.entity_id);
+            const source = res.data;
             enriched.push({
               entity_id: participant.entity_id,
               name: source.name || 'Sans nom',
@@ -1105,10 +1025,7 @@ export default {
       if (!confirm('Êtes-vous sûr de vouloir supprimer cet événement ?')) return;
 
       try {
-        await axios.delete(
-          `${this.ES_BASE_URL}/events_v1/_doc/${event._id}`,
-          { auth: this.ES_AUTH }
-        );
+        await api.events.delete(event._id);
         this.showSnackbar('Événement supprimé avec succès', 'success');
         await this.fetchEvents();
       } catch (e) {
@@ -1123,9 +1040,6 @@ export default {
       }
 
       try {
-        const eventId = this.formEvent.event_id || 
-                        `evt_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
         // Convertir les datetime-local en ISO 8601
         const formatDateTime = (dt) => {
           if (!dt || dt === '') return new Date().toISOString();
@@ -1142,7 +1056,6 @@ export default {
 
         // Construire l'objet event avec validation des types
         const eventToSave = {
-          event_id: eventId,
           title: this.formEvent.title || '',
           description: this.formEvent.description || '',
           event_type: this.formEvent.event_type || '',
@@ -1184,13 +1097,11 @@ export default {
           },
         };
 
-        console.log('Données à envoyer:', JSON.stringify(eventToSave, null, 2));
-
-        await axios.post(
-          `${this.ES_BASE_URL}/events_v1/_doc/${eventId}`,
-          eventToSave,
-          { auth: this.ES_AUTH }
-        );
+        if (this.editingEvent && this.editingEvent._id) {
+          await api.events.update(this.editingEvent._id, eventToSave);
+        } else {
+          await api.events.create(eventToSave);
+        }
 
         const successMessage = this.editingEvent ? "Événement modifié avec succès" : "Événement créé avec succès";
         this.showSnackbar(successMessage, 'success');

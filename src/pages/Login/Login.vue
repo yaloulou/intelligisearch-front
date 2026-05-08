@@ -242,7 +242,6 @@ export default {
       emailRules: [
         (v) => !!v || "E-mail is required",
         (v) => /.+@.+/.test(v) || "E-mail must be valid",
-        (v) => v.toLowerCase() === this.email,
       ],
       createFullName: "Katengwa Joseph",
       createEmail: "jkat@lisu.com",
@@ -307,14 +306,9 @@ export default {
   },
 
   created() {
-    console.log("Backend: " + !!config.isBackend);
-    let token = localStorage.getItem("token");
+    const token = localStorage.getItem("access_token");
     if (token) {
-      this.receiveToken(token);
-    } else {
-      if (this.isAuthenticated(localStorage.getItem("token"))) {
-        this.receiveLogin();
-      }
+      this.$router.push("/board").catch(() => {});
     }
   },
   mounted() {

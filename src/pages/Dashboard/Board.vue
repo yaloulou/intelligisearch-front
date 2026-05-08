@@ -172,16 +172,15 @@ import axios from "axios";
 import VueApexCharts from "vue-apexcharts";
 import config from "@/config";
 
-const ES_URL = config.URL_BASE;
-const INDEX = "intel_v1";
-const AUTH = { username: "elastic", password: "ZuCI2sJBt3M=CMph9Y47" };
+// Points vers le middleware NestJS (ex: http://localhost:3000)
+const API_BASE = config.API_BASE || "http://localhost:3000";
 
 export default {
   components: { apexchart: VueApexCharts },
 
   data() {
     return {
-      // Constantes d’UI
+      // Constantes d'UI
       ALL_PROVINCES: "Toutes les provinces",
       ALL_TERRITORIES: "Tous les territoires",
 
@@ -259,7 +258,7 @@ export default {
       if (!date) return "-";
       try {
         const options = { year: "numeric", month: "2-digit", day: "2-digit" };
-        return new Date(date).toLocaleDateString("fr-CA", options); // YYYY-MM-DD
+        return new Date(date).toLocaleDateString("fr-CA", options);
       } catch {
         return String(date);
       }
@@ -269,57 +268,18 @@ export default {
       this.searchDateRange = [];
     },
 
-    buildFilters() {
-      const filter = [];
-
-      // Province
-      if (this.selectedProvince && this.selectedProvince !== this.ALL_PROVINCES) {
-        filter.push({ term: { province_region: this.selectedProvince } });
-      }
-
-      // Territoire
-      if (
-        this.selectedTerritoire &&
-        this.selectedTerritoire !== this.ALL_TERRITORIES &&
-        this.selectedProvince !== this.ALL_PROVINCES
-      ) {
-        filter.push({ term: { territoire_ville: this.selectedTerritoire } });
-      }
-
-      // Dates (mapping date_event)
-      if (Array.isArray(this.searchDateRange) && this.searchDateRange.length === 2) {
-        const [startDate, endDate] = this.searchDateRange;
-        if (startDate && endDate) {
-          filter.push({
-            range: {
-              date_event: { gte: startDate, lte: endDate },
-            },
-          });
-        }
-      }
-
-      return filter;
-    },
-
     safeInt(v) {
       const n = Number(v);
       return Number.isFinite(n) ? n : 0;
     },
 
+    // ─── API calls via NestJS middleware ───────────────────────
+
     async fetchProvinceOptions() {
       try {
-        const body = {
-          size: 0,
-          aggs: {
-            provinces: { terms: { field: "province_region", size: 1000 } },
-          },
-        };
-
-        const res = await axios.post(`${ES_URL}/${INDEX}/_search`, body, { auth: AUTH });
-        const provinces = (res.data.aggregations?.provinces?.buckets || [])
-          .map((b) => b.key)
-          .filter(Boolean);
-
+        const res = await axios.get(`${API_BASE}/api/intel-dashboard/provinces`);
+        // API returns { provinces: string[] }
+        const provinces = res.data.provinces || [];
         this.provinceOptions = [this.ALL_PROVINCES, ...provinces];
       } catch (error) {
         console.error("Erreur lors de la récupération des provinces:", error);
@@ -334,23 +294,11 @@ export default {
 
         if (!this.selectedProvince || this.selectedProvince === this.ALL_PROVINCES) return;
 
-        const body = {
-          size: 0,
-          query: {
-            bool: {
-              filter: [{ term: { province_region: this.selectedProvince } }],
-            },
-          },
-          aggs: {
-            territoires: { terms: { field: "territoire_ville", size: 2000 } },
-          },
-        };
-
-        const res = await axios.post(`${ES_URL}/${INDEX}/_search`, body, { auth: AUTH });
-        const territoires = (res.data.aggregations?.territoires?.buckets || [])
-          .map((b) => b.key)
-          .filter(Boolean);
-
+        const res = await axios.get(`${API_BASE}/api/intel-dashboard/territoires`, {
+          params: { province: this.selectedProvince },
+        });
+        // API returns { territoires: string[] }
+        const territoires = res.data.territoires || [];
         this.territoireOptions = [this.ALL_TERRITORIES, ...territoires];
       } catch (error) {
         console.error("Erreur lors de la récupération des territoires/villes:", error);
@@ -359,27 +307,32 @@ export default {
 
     async fetchDashboardData() {
       try {
-        const filter = this.buildFilters();
+        // Build query params for the middleware
+        const params = {};
 
-        const body = {
-          size: 10000,
-          _source: [
-            "date_event",
-            "province_region",
-            "territoire_ville",
-            "event",
-            "description",
-            "degats_humains.morts",
-            "degats_humains.blesses",
-          ],
-          sort: [{ date_event: { order: "desc" } }],
-          query: filter.length
-            ? { bool: { filter } }
-            : { match_all: {} },
-        };
+        if (this.selectedProvince && this.selectedProvince !== this.ALL_PROVINCES) {
+          params.province = this.selectedProvince;
+        }
 
-        const res = await axios.post(`${ES_URL}/${INDEX}/_search`, body, { auth: AUTH });
-        const incidents = (res.data.hits?.hits || []).map((h) => h._source);
+        if (
+          this.selectedTerritoire &&
+          this.selectedTerritoire !== this.ALL_TERRITORIES &&
+          this.selectedProvince !== this.ALL_PROVINCES
+        ) {
+          params.territoire = this.selectedTerritoire;
+        }
+
+        if (Array.isArray(this.searchDateRange) && this.searchDateRange.length === 2) {
+          const [startDate, endDate] = this.searchDateRange;
+          if (startDate && endDate) {
+            params.dateFrom = startDate;
+            params.dateTo = endDate;
+          }
+        }
+
+        const res = await axios.get(`${API_BASE}/api/intel-dashboard/data`, { params });
+        // API returns { incidents: object[] }
+        const incidents = res.data.incidents || [];
 
         this.processDashboardData(incidents);
 
@@ -394,6 +347,8 @@ export default {
         console.error("Erreur lors de la récupération des données du dashboard:", error);
       }
     },
+
+    // ─── Data processing (unchanged) ──────────────────────────
 
     processDashboardData(incidents) {
       this.totalIncidents = incidents.length;
@@ -431,7 +386,7 @@ export default {
       this.timeChartOptions.xaxis.categories = sortedDates;
       this.timeChartData[0].data = sortedDates.map((d) => byDate[d].length);
 
-      // Table: 10 plus récents (déjà triés desc)
+      // Table: 10 plus récents (déjà triés desc par l'API)
       this.recentIncidents = incidents.slice(0, 10).map((inc) => ({
         ...inc,
         date_event: inc.date_event ? this.formatDate(inc.date_event) : "-",
@@ -457,7 +412,7 @@ export default {
   margin-bottom: 24px;
   background-color: #ffffff;
   border-radius: 0;
-  border: 1px solid #e0e0e0;
+  border: 1px solid #dde3ec;
 }
 
 .v-card-title {

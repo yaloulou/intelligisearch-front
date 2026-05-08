@@ -457,6 +457,7 @@
 
 <script>
 import axios from "axios";
+import api from "@/services/api";
 
 export default {
   data() {
@@ -499,36 +500,18 @@ export default {
   methods: {
     async searchActor() {
       try {
-        // Create search query based on the fields
-        let query = "";
-        if (this.searchQuery) {
-          query += `nom_complet:"${this.searchQuery}"`;
-        }
-        if (this.searchRole) {
-          if (query.length > 0) query += " AND ";
-          query += `role:"${this.searchRole}"`;
-        }
-        if (this.searchHostilite !== null) {
-          if (query.length > 0) query += " AND ";
-          query += `hostilite:${this.searchHostilite}`;
-        }
-
-        const response = await axios.get(
-          "http://localhost:9200/lisu_acteurs_pol_diplo/_search",
-          {
-            auth: {
-          username: 'elastic',
-          password: 'Jm82icR+PUlNJQKNntUy'
-        },
-            params: { q: query },
-          }
-        );
-        const hits = response.data.hits.hits;
-        this.actors =
-          hits.length > 0
-            ? hits.map((hit) => ({ id: hit._id, ...hit._source }))
-            : [];
-        this.noResults = hits.length === 0;
+        const res = await api.entities.search(this.searchQuery || "", 50);
+        const items = res.data?.items || [];
+        this.actors = items.map((item) => ({
+          id: item.id,
+          nom_complet: item.name || item.text || "",
+          pays: item.attributes?.pays || "",
+          organisation: item.attributes?.organisation || "",
+          role: item.attributes?.role ? [item.attributes.role] : [],
+          hostilite: item.risk?.risk_level || 0,
+          ...item,
+        }));
+        this.noResults = items.length === 0;
       } catch (error) {
         console.error("Erreur lors de la recherche:", error);
       }
@@ -661,14 +644,8 @@ export default {
           this.editActor.photo_url = uploadResponse.data.filename;
         }
 
-        await axios.put(
-          `http://localhost:9200/lisu_acteurs_pol_diplo/_doc/${this.editActor.id}`,
-          this.editActor,
-          { auth: {
-          username: 'elastic',
-          password: 'Jm82icR+PUlNJQKNntUy'
-        } }
-        );
+        const { id, ...actorData } = this.editActor;
+        await api.entities.update(id, actorData);
         this.searchActor(); // Refresh the table with updated data
         this.closeEditDialog();
       } catch (error) {

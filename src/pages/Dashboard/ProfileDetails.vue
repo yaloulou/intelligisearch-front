@@ -96,19 +96,11 @@
 </template>
 
 <script>
-import axios from "axios";
-import config from "@/config";
+import api from "@/services/api";
 
 export default {
   data() {
     return {
-      ES_BASE_URL: config.URL_BASE,
-      ES_INDEX: "entities_v1",
-      ES_AUTH: {
-        username: "elastic",
-        password: "ZuCI2sJBt3M=CMph9Y47",
-      },
-
       entity: null,
     };
   },
@@ -135,11 +127,8 @@ export default {
     async fetchEntity() {
       const id = this.$route.params.id;
       try {
-        const res = await axios.get(
-          `${this.ES_BASE_URL}/${this.ES_INDEX}/_doc/${id}`,
-          { auth: this.ES_AUTH }
-        );
-        this.entity = res.data?._source || null;
+        const res = await api.entities.get(id);
+        this.entity = res.data || null;
       } catch (e) {
         console.error("Erreur fetch entity:", e);
         this.entity = null;

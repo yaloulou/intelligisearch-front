@@ -123,6 +123,10 @@
         </div>
       </v-list>
     </v-menu> -->
+    <div v-if="currentUser" class="d-none d-md-flex align-center mr-2" style="font-size:13px; opacity:0.9;">
+      {{ currentUser.prenom }} {{ currentUser.nom }}
+      <v-chip x-small class="ml-2" outlined color="white">{{ currentUser.role }}</v-chip>
+    </div>
     <v-menu min-width="180" offset-y bottom left nudge-bottom="10">
       <!-- <template v-slot:activator="{ on, attrs }">
         <v-avatar size="40" v-bind="attrs" v-on="on" class="mr-3">
@@ -135,11 +139,11 @@
         </v-avatar>
       </template>
       <v-list>
-        <div class="text-h5 grey--text text--darken-3 px-4 pt-4">
-          <!-- John Smith -->
+        <div class="text-h6 grey--text text--darken-3 px-4 pt-4">
+          {{ currentUser ? `${currentUser.prenom} ${currentUser.nom}` : '' }}
         </div>
-        <div class="subtitle-2 primary--text font-weight-regular px-4">
-          <!-- Flatlogic.com -->
+        <div class="subtitle-2 primary--text font-weight-regular px-4 pb-2">
+          {{ currentUser ? currentUser.role : '' }}
         </div>
         <!-- <v-list-item-group color="primary">
           <v-list-item v-for="(item, i) in account" :key="i">
@@ -246,6 +250,7 @@ export default {
   }),
   computed: {
     ...mapState("layout", { drawer: (state) => state.drawer }),
+    ...mapState("auth", { currentUser: (state) => state.user }),
     DRAWER_STATE: {
       get() {
         return this.drawer;

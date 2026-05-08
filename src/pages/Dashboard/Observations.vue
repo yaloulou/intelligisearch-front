@@ -484,18 +484,11 @@
 </template>
 
 <script>
-import axios from "axios";
-import config from "@/config";
+import api from "@/services/api";
 
 export default {
   data() {
     return {
-      ES_BASE_URL: config.URL_BASE,
-      ES_AUTH: {
-        username: "elastic",
-        password: "ZuCI2sJBt3M=CMph9Y47",
-      },
-
       loading: false,
       search: "",
       observations: [],
@@ -629,42 +622,18 @@ export default {
     async fetchObservations() {
       this.loading = true;
       try {
-        const query = {
-          query: { match_all: {} },
-          sort: [{ "time.observed_at": { order: "desc" } }],
+        const res = await api.observations.search({
+          obs_type: this.filterType,
+          source_reliability: this.filterReliability,
+          dateFrom: this.filterDateFrom,
+          dateTo: this.filterDateTo,
           size: 500,
-        };
+        });
 
-        // Appliquer les filtres
-        if (this.filterType || this.filterReliability || this.filterDateFrom || this.filterDateTo) {
-          query.query = { bool: { must: [] } };
-
-          if (this.filterType) {
-            query.query.bool.must.push({ term: { obs_type: this.filterType } });
-          }
-          if (this.filterReliability) {
-            query.query.bool.must.push({
-              term: { "evaluation.source_reliability": this.filterReliability },
-            });
-          }
-          if (this.filterDateFrom || this.filterDateTo) {
-            const rangeQuery = { range: { "time.observed_at": {} } };
-            if (this.filterDateFrom) rangeQuery.range["time.observed_at"].gte = this.filterDateFrom;
-            if (this.filterDateTo) rangeQuery.range["time.observed_at"].lte = this.filterDateTo;
-            query.query.bool.must.push(rangeQuery);
-          }
-        }
-
-        const res = await axios.post(
-          `${this.ES_BASE_URL}/observations_v1/_search`,
-          query,
-          { auth: this.ES_AUTH }
-        );
-
-        this.observations = res.data?.hits?.hits?.map((h) => ({
-          ...h._source,
-          _id: h._id,
-        })) || [];
+        this.observations = (res.data?.items || []).map((item) => ({
+          ...item,
+          _id: item._id || item.id,
+        }));
       } catch (e) {
         console.error("Erreur fetch observations:", e);
         this.showSnackbar("Erreur lors du chargement des observations", "error");
@@ -681,67 +650,17 @@ export default {
       this.searchingEntities = true;
 
       try {
-        const res = await axios.post(
-          `${this.ES_BASE_URL}/entities_v1/_search`,
-          {
-            query: {
-              bool: {
-                should: [
-                  {
-                    match: {
-                      name: {
-                        query: val,
-                        boost: 3,
-                        fuzziness: "AUTO",
-                      },
-                    },
-                  },
-                  {
-                    match: {
-                      "name.keyword": {
-                        query: val,
-                        boost: 5,
-                      },
-                    },
-                  },
-                  {
-                    match: {
-                      aliases: {
-                        query: val,
-                        boost: 2,
-                      },
-                    },
-                  },
-                  {
-                    prefix: {
-                      "name.keyword": {
-                        value: val.toLowerCase(),
-                        boost: 4,
-                      },
-                    },
-                  },
-                ],
-                minimum_should_match: 1,
-              },
-            },
-            size: 20,
-            _source: ["name", "entity_type", "entity_id", "attributes", "aliases"],
-            sort: [
-              "_score",
-              { "name.keyword": { order: "asc" } }
-            ],
-          },
-          { auth: this.ES_AUTH }
-        );
+        const res = await api.entities.search(val, 20);
+        const items = res.data?.items || [];
 
-        this.entitySuggestions = res.data?.hits?.hits?.map((h) => ({
-          text: h._source.name || "Sans nom",
-          value: h._id,
-          entity_type: h._source.entity_type || "unknown",
-          entity_id: h._source.entity_id,
-          attributes: h._source.attributes,
-          aliases: h._source.aliases,
-        })) || [];
+        this.entitySuggestions = items.map((h) => ({
+          text: h.name || h.text || "Sans nom",
+          value: h.id,
+          entity_type: h.entity_type || "unknown",
+          entity_id: h.id,
+          attributes: h.attributes,
+          aliases: h.aliases,
+        }));
       } catch (e) {
         console.error("Erreur recherche entités:", e);
         this.entitySuggestions = [];
@@ -792,15 +711,12 @@ export default {
       this.selectedEntities = [];
       for (const ref of entityRefs) {
         try {
-          const res = await axios.get(
-            `${this.ES_BASE_URL}/entities_v1/_doc/${ref.entity_id}`,
-            { auth: this.ES_AUTH }
-          );
-          if (res.data?._source) {
+          const res = await api.entities.get(ref.entity_id);
+          if (res.data) {
             this.selectedEntities.push({
               entity_id: ref.entity_id,
-              name: res.data._source.name || "Sans nom",
-              entity_type: res.data._source.entity_type || "unknown",
+              name: res.data.name || "Sans nom",
+              entity_type: res.data.entity_type || "unknown",
               role: ref.role || "subject",
             });
           }
@@ -831,9 +747,6 @@ export default {
       this.savingObservation = true;
 
       try {
-        const obsId = this.currentObservation.obs_id || 
-                      `obs_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-
         // Construire entity_refs à partir des entités sélectionnées
         const entityRefs = this.selectedEntities.map(entity => ({
           entity_id: entity.entity_id,
@@ -842,7 +755,6 @@ export default {
 
         const observation = {
           ...this.currentObservation,
-          obs_id: obsId,
           entity_refs: entityRefs,
           time: {
             observed_at: this.currentObservation.time.observed_at || new Date().toISOString(),
@@ -858,11 +770,11 @@ export default {
           },
         };
 
-        await axios.post(
-          `${this.ES_BASE_URL}/observations_v1/_doc/${obsId}`,
-          observation,
-          { auth: this.ES_AUTH }
-        );
+        if (this.editMode && this.currentObservation._id) {
+          await api.observations.update(this.currentObservation._id, observation);
+        } else {
+          await api.observations.create(observation);
+        }
 
         this.showSnackbar(
           this.editMode ? "Observation modifiée avec succès" : "Observation ajoutée avec succès",
@@ -892,10 +804,7 @@ export default {
       if (!this.observationToDelete) return;
 
       try {
-        await axios.delete(
-          `${this.ES_BASE_URL}/observations_v1/_doc/${this.observationToDelete._id}`,
-          { auth: this.ES_AUTH }
-        );
+        await api.observations.delete(this.observationToDelete._id);
 
         this.showSnackbar("Observation supprimée avec succès", "success");
         this.deleteDialog = false;

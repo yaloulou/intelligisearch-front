@@ -11,9 +11,12 @@ import { AuthMixin } from "./mixins/auth";
 
 axios.defaults.baseURL = config.baseURLApi;
 axios.defaults.headers.common["Content-Type"] = "application/json";
-const token = localStorage.getItem("token");
-if (token) {
-  axios.defaults.headers.common["Authorization"] = "Bearer " + token;
+
+// Bootstrap JWT token on app startup
+const accessToken = localStorage.getItem("access_token");
+if (accessToken) {
+  axios.defaults.headers.common["Authorization"] = "Bearer " + accessToken;
+  store.dispatch("auth/fetchMe");
 }
 
 Vue.use(VueGoogleMaps, {

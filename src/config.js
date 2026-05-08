@@ -9,8 +9,11 @@ const redirectUrl =
     ? "http://localhost:3000/vue-material"
     : "https://demo.flatlogic.com/vue-material";
 
-// URL unique pour la base de données Elasticsearch
+// URL unique pour la base de données Elasticsearch (legacy, ne plus utiliser dans les composants)
 const URL_BASE = process.env.VUE_APP_ELASTICSEARCH_URL || "http://41.79.235.212:9200";
+
+// URL du backend NestJS intermédiaire
+const API_BASE = process.env.VUE_APP_API_BASE || "http://localhost:3000";
 
 export default {
   light: {
@@ -49,15 +52,11 @@ export default {
   baseURLApi,
   redirectUrl,
   URL_BASE,
+  API_BASE,
   isBackend: process.env.VUE_APP_BACKEND,
   remote: "https://sing-generator-node.herokuapp.com",
   auth: {
     email: "admin@flatlogic.com",
     password: "password",
-  },
-  elasticsearch: {
-    url: URL_BASE,
-    user: "elastic",
-    password: "ZuCI2sJBt3M=CMph9Y47",
   },
 };

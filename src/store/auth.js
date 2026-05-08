@@ -1,13 +1,48 @@
-import config from "../config";
 import axios from "axios";
-import jwt from "jsonwebtoken";
 import router from "../Routes";
+
+const API_BASE = process.env.VUE_APP_API_BASE || "http://localhost:3000";
 
 export default {
   namespaced: true,
   state: {
     isFetching: false,
     errorMessage: "",
+    user: null,
+  },
+  getters: {
+    isAuthenticated: () => !!localStorage.getItem("access_token"),
+    role: (state) => state.user?.role || null,
+    desk: (state) => state.user?.desk || null,
+    isAdmin: (state) => state.user?.role === "admin",
+    isCoordinateur: (state) => state.user?.role === "coordinateur",
+    canCreate: (state) => (resource) => {
+      const role = state.user?.role;
+      if (!role) return false;
+      const matrix = {
+        intel:      ["officier", "coordinateur", "admin"],
+        observation:["officier", "coordinateur", "admin"],
+        event:      ["analyste", "conseiller", "coordinateur", "admin"],
+        relation:   ["analyste", "conseiller", "coordinateur", "admin"],
+        entity:     ["analyste", "conseiller", "coordinateur", "admin"],
+        user:       ["admin"],
+      };
+      return (matrix[resource] || []).includes(role);
+    },
+    canDelete: (state) => (resource) => {
+      const role = state.user?.role;
+      if (!role) return false;
+      const matrix = {
+        intel:      ["coordinateur", "admin"],
+        observation:["coordinateur", "admin"],
+        event:      ["coordinateur", "admin"],
+        relation:   ["coordinateur", "admin"],
+        user:       ["admin"],
+      };
+      return (matrix[resource] || []).includes(role);
+    },
+    canAssign: (state) =>
+      state.user?.role === "coordinateur" || state.user?.role === "admin",
   },
   mutations: {
     LOGIN_FAILURE(state, payload) {
@@ -21,72 +56,77 @@ export default {
     LOGIN_REQUEST(state) {
       state.isFetching = true;
     },
+    SET_USER(state, user) {
+      state.user = user;
+    },
+    LOGOUT(state) {
+      state.user = null;
+      state.isFetching = false;
+      state.errorMessage = "";
+    },
   },
   actions: {
-    loginUser({ dispatch }, creds) {
-      localStorage.setItem("userEmail", creds.email);
-      console.log("EMAIL ", creds.email);
-      if (!config.isBackend) {
-        dispatch("receiveToken", "token");
-      } else {
-        dispatch("requestLogin");
-        if (creds.social) {
-          window.location.href =
-            config.baseURLApi +
-            "/auth/signin/" +
-            creds.social +
-            "?app=" +
-            config.redirectUrl;
-        } else if (creds.email.length > 0 && creds.password.length > 0) {
-          axios
-            .post("/auth/signin/local", creds)
-            .then((res) => {
-              const token = res.data;
-              //Ajouter expressement le mail
-              dispatch("receiveToken", token);
-            })
-            .catch((err) => {
-              dispatch("loginError", err.response.data);
-            });
-        } else {
-          dispatch("loginError", "Something was wrong. Try again");
-        }
+    async loginUser({ commit, dispatch }, creds) {
+      commit("LOGIN_REQUEST");
+      try {
+        const res = await axios.post(`${API_BASE}/auth/login`, {
+          email: creds.email,
+          password: creds.password,
+        });
+        const token = res.data.access_token;
+        localStorage.setItem("access_token", token);
+        axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+        await dispatch("fetchMe");
+        commit("LOGIN_SUCCESS");
+        const redirect = router.currentRoute.query?.redirect || "/board";
+        router.push(redirect).catch(() => {});
+      } catch (err) {
+        const msg =
+          err.response?.data?.message ||
+          (err.response?.status === 401
+            ? "Identifiants invalides ou compte désactivé"
+            : "Erreur de connexion");
+        commit("LOGIN_FAILURE", Array.isArray(msg) ? msg.join(", ") : msg);
       }
     },
-    receiveToken({ dispatch }, token) {
-      let user = {};
-      // We check if app runs with backend mode
-      if (config.isBackend) {
-        user = jwt.decode(token).user;
-        delete user.id;
-      } else {
-        user = {
-          email: config.auth.email,
-        };
+    async fetchMe({ commit }) {
+      const token = localStorage.getItem("access_token");
+      if (!token) return;
+      try {
+        const res = await axios.get(`${API_BASE}/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        commit("SET_USER", res.data);
+      } catch {
+        localStorage.removeItem("access_token");
+        commit("SET_USER", null);
       }
-
-      localStorage.setItem("token", token);
-      localStorage.setItem("user", JSON.stringify(user));
-
-      axios.defaults.headers.common["Authorization"] = "Bearer " + token;
-      dispatch("receiveLogin");
     },
-    logoutUser() {
+    logoutUser({ commit }) {
+      localStorage.removeItem("access_token");
       localStorage.removeItem("token");
       localStorage.removeItem("user");
-      document.cookie = "token=;expires=Thu, 01 Jan 1970 00:00:01 GMT;";
+      localStorage.removeItem("userEmail");
       axios.defaults.headers.common["Authorization"] = "";
-      router.push("/login");
+      commit("LOGOUT");
+      router.push("/login").catch(() => {});
     },
     loginError({ commit }, payload) {
       commit("LOGIN_FAILURE", payload);
     },
-    receiveLogin({ commit }) {
-      commit("LOGIN_SUCCESS");
-      router.push("/user/profile");
-    },
     requestLogin({ commit }) {
       commit("LOGIN_REQUEST");
+    },
+    // Legacy — kept for backward compatibility
+    receiveToken({ dispatch }, token) {
+      if (token && token !== "token") {
+        localStorage.setItem("access_token", token);
+        axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+        return dispatch("fetchMe");
+      }
+    },
+    receiveLogin() {
+      router.push("/board").catch(() => {});
     },
   },
 };

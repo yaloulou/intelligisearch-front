@@ -8,7 +8,7 @@ $card-title-color:  var(--v-greyMedium-base);
 
 // Layout //
 $body-bg-dark: #13131a;
-$body-bg: #F6F7FF !default;
+$body-bg: #f0f2f5 !default;
 $content-padding:             24px;
 
 // Typography //
@@ -26,7 +26,7 @@ $fs-medium:                 0.875rem !default;   // 14px
 $fs-index:                  0.75rem !default;    // 12px
 
 // Card //
-$card-shadow: 0 3px 11px 0 #E8EAFC, 0 3px 3px -2px #B2B2B21A, 0 1px 8px 0 #9A9A9A1A;
+$card-shadow: none;
 
 // Buttons //
-$button-shadow: $card-shadow;
+$button-shadow: none;

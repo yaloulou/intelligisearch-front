@@ -1,47 +1,71 @@
 <template>
-  <v-container fluid class="dashboard-container">
-    <!-- Header Section -->
-    <v-row class="mb-6">
-      <v-col cols="12">
-        <div class="header-section">
-          <h1 class="display-2 font-weight-bold mb-2">
-            Enregistrement de Renseignements Sécuritaires
-          </h1>
-          <p class="subtitle-1">
-            Collectez et documentez les incidents de sécurité en détail
-          </p>
-        </div>
-      </v-col>
-    </v-row>
+  <v-container fluid class="dashboard-container pa-0">
 
-    <v-card class="elevation-3 form-card">
-      <v-card-text class="pa-8">
-        <v-form ref="form" v-model="formValid" lazy-validation>
-          <!-- Section 1: Contexte Géographique -->
-          <div class="section-container mb-8">
-            <h2 class="section-header mb-6">
-              Contexte Géographique
-            </h2>
-            
+    <!-- ══════════════ HERO HEADER ══════════════ -->
+    <div class="hero-header">
+      <div class="hero-content">
+        <h1 class="hero-title">Enregistrement de Renseignements Sécuritaires</h1>
+        <p class="hero-subtitle">
+          Collectez et documentez les incidents de sécurité avec précision et rigueur
+        </p>
+        <div class="hero-chips">
+          <v-chip small dark color="rgba(255,255,255,0.15)" class="mr-2">Données confidentielles</v-chip>
+          <v-chip small dark color="rgba(255,255,255,0.15)">Formulaire sécurisé</v-chip>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ PROGRESS STEPS ══════════════ -->
+    <div class="steps-bar">
+      <div class="step-item"><span>Géographie</span></div>
+      <div class="step-separator"></div>
+      <div class="step-item"><span>Incident</span></div>
+      <div class="step-separator"></div>
+      <div class="step-item"><span>Acteurs</span></div>
+      <div class="step-separator"></div>
+      <div class="step-item"><span>Dégâts humains</span></div>
+      <div class="step-separator"></div>
+      <div class="step-item"><span>Dégâts matériels</span></div>
+    </div>
+
+    <!-- ══════════════ MAIN FORM ══════════════ -->
+    <div class="form-wrapper">
+      <v-form ref="form" v-model="formValid" lazy-validation>
+
+        <!-- ── Section 1 : Contexte Géographique ── -->
+        <div class="section-card section-geo">
+          <div class="section-head">
+            <div>
+              <span class="section-number">01</span>
+              <h2 class="section-title">Contexte Géographique</h2>
+            </div>
+            <v-chip small class="ml-auto chip-required">Champs requis</v-chip>
+          </div>
+
+          <div class="section-body">
             <v-row>
               <v-col cols="12" md="6">
                 <v-text-field
                   v-model="form.province_region"
-                  label="Province/Région"
+                  label="Province / Région"
                   outlined
                   dense
                   :rules="[rules.required]"
-                  placeholder="Ex: Nord-Kivu, Kasai..."
+                  prepend-inner-icon="mdi-map"
+                  placeholder="Ex : Nord-Kivu, Kasaï..."
+                  color="blue darken-3"
                 ></v-text-field>
               </v-col>
               <v-col cols="12" md="6">
                 <v-text-field
                   v-model="form.territoire_ville"
-                  label="Territoire/Ville"
+                  label="Territoire / Ville"
                   outlined
                   dense
                   :rules="[rules.required]"
-                  placeholder="Ex: Goma, Bukavu..."
+                  prepend-inner-icon="mdi-city"
+                  placeholder="Ex : Goma, Bukavu..."
+                  color="blue darken-3"
                 ></v-text-field>
               </v-col>
             </v-row>
@@ -50,19 +74,23 @@
               <v-col cols="12" md="6">
                 <v-text-field
                   v-model="form.secteur_chefferie_commune"
-                  label="Secteur/Chefferie/Commune"
+                  label="Secteur / Chefferie / Commune"
                   outlined
                   dense
+                  prepend-inner-icon="mdi-office-building"
                   placeholder="Secteur administratif"
+                  color="blue darken-3"
                 ></v-text-field>
               </v-col>
               <v-col cols="12" md="6">
                 <v-text-field
                   v-model="form.groupement_quartier"
-                  label="Groupement/Quartier"
+                  label="Groupement / Quartier"
                   outlined
                   dense
+                  prepend-inner-icon="mdi-home-group"
                   placeholder="Groupement ou quartier"
+                  color="blue darken-3"
                 ></v-text-field>
               </v-col>
             </v-row>
@@ -71,61 +99,69 @@
               <v-col cols="12">
                 <v-text-field
                   v-model="form.localite_village_lieuprecis"
-                  label="Lieu Précis (Village/Localité)"
+                  label="Lieu Précis — Village / Localité"
                   outlined
                   dense
                   :rules="[rules.required]"
-                  placeholder="Décrivez le lieu exact"
+                  prepend-inner-icon="mdi-pin"
+                  placeholder="Décrivez le lieu exact de l'incident"
+                  color="blue darken-3"
                 ></v-text-field>
               </v-col>
             </v-row>
 
             <v-row>
-              <v-col cols="12" md="6">
+              <v-col cols="12" md="4">
+                <v-text-field
+                  v-model="form.pays"
+                  label="Pays"
+                  outlined
+                  dense
+                  prepend-inner-icon="mdi-flag"
+                  placeholder="Ex : République Démocratique du Congo"
+                  color="blue darken-3"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="12" md="4">
                 <v-text-field
                   v-model="form.latitude"
                   label="Latitude (optionnel)"
                   type="number"
                   outlined
                   dense
+                  prepend-inner-icon="mdi-crosshairs-gps"
                   step="0.0001"
-                  placeholder="Ex: -2.5"
+                  placeholder="Ex : −2.5000"
+                  color="blue darken-3"
                 ></v-text-field>
               </v-col>
-              <v-col cols="12" md="6">
+              <v-col cols="12" md="4">
                 <v-text-field
                   v-model="form.longitude"
                   label="Longitude (optionnel)"
                   type="number"
                   outlined
                   dense
+                  prepend-inner-icon="mdi-crosshairs-gps"
                   step="0.0001"
-                  placeholder="Ex: 28.5"
-                ></v-text-field>
-              </v-col>
-            </v-row>
-
-            <v-row>
-              <v-col cols="12">
-                <v-text-field
-                  v-model="form.pays"
-                  label="Pays"
-                  outlined
-                  dense
-                  placeholder="Ex: République Démocratique du Congo"
+                  placeholder="Ex : 28.5000"
+                  color="blue darken-3"
                 ></v-text-field>
               </v-col>
             </v-row>
           </div>
+        </div>
 
-          <!-- Section 2: Détails de l'Incident -->
-          <v-divider class="my-6"></v-divider>
-          
-          <div class="section-container mb-8">
-            <h2 class="section-header mb-6">
-              Détails de l'Incident
-            </h2>
+        <!-- ── Section 2 : Détails de l'Incident ── -->
+        <div class="section-card section-incident">
+          <div class="section-head">
+            <div>
+              <span class="section-number">02</span>
+              <h2 class="section-title">Détails de l'Incident</h2>
+            </div>
+          </div>
 
+          <div class="section-body">
             <v-row>
               <v-col cols="12" md="6">
                 <v-menu
@@ -147,12 +183,15 @@
                       outlined
                       dense
                       :rules="[rules.required]"
+                      prepend-inner-icon="mdi-calendar-alert"
+                      color="deep-orange darken-1"
                     ></v-text-field>
                   </template>
                   <v-date-picker
                     v-model="form.date_event"
                     no-title
                     @input="menu = false"
+                    color="deep-orange darken-1"
                   ></v-date-picker>
                 </v-menu>
               </v-col>
@@ -163,7 +202,9 @@
                   outlined
                   dense
                   :rules="[rules.required]"
-                  placeholder="Ex: Expulsion, Attaque, Cambriolage..."
+                  prepend-inner-icon="mdi-lightning-bolt"
+                  placeholder="Ex : Expulsion, Attaque, Cambriolage..."
+                  color="deep-orange darken-1"
                 ></v-text-field>
               </v-col>
             </v-row>
@@ -175,7 +216,9 @@
                   label="Précision Géographique"
                   outlined
                   dense
-                  placeholder="Ex: Très précis, Approximatif..."
+                  prepend-inner-icon="mdi-map-search"
+                  placeholder="Ex : Très précis, Approximatif..."
+                  color="deep-orange darken-1"
                 ></v-text-field>
               </v-col>
               <v-col cols="12" md="6">
@@ -184,100 +227,133 @@
                   label="Source d'Information"
                   outlined
                   dense
-                  placeholder="Ex: Témoin direct, Rapport officiel..."
+                  prepend-inner-icon="mdi-source-branch"
+                  placeholder="Ex : Témoin direct, Rapport officiel..."
+                  color="deep-orange darken-1"
                 ></v-text-field>
               </v-col>
             </v-row>
 
-            <v-text-field
-              v-model="form.categorie"
-              label="Catégorie de l'Incident"
-              outlined
-              dense
-              class="mb-4"
-              placeholder="Ex: Violence, Déplacement, Conflit..."
-            ></v-text-field>
+            <v-row>
+              <v-col cols="12">
+                <v-text-field
+                  v-model="form.categorie"
+                  label="Catégorie de l'Incident"
+                  outlined
+                  dense
+                  prepend-inner-icon="mdi-tag-multiple"
+                  placeholder="Ex : Violence, Déplacement, Conflit..."
+                  color="deep-orange darken-1"
+                ></v-text-field>
+              </v-col>
+            </v-row>
 
             <v-textarea
               v-model="form.description"
               label="Description Détaillée de l'Incident"
               outlined
-              dense
-              rows="4"
+              rows="5"
               :rules="[rules.required]"
               counter
               maxlength="2000"
-              placeholder="Décrivez l'incident en détail..."
+              prepend-inner-icon="mdi-text-box-edit"
+              placeholder="Décrivez l'incident avec précision : circonstances, déroulement, contexte..."
+              color="deep-orange darken-1"
             ></v-textarea>
           </div>
+        </div>
 
-          <!-- Section 3: Acteurs Impliqués -->
-          <v-divider class="my-6"></v-divider>
+        <!-- ── Section 3 : Acteurs Impliqués ── -->
+        <div class="section-card section-actors">
+          <div class="section-head">
+            <div>
+              <span class="section-number">03</span>
+              <h2 class="section-title">Acteurs Impliqués</h2>
+            </div>
+          </div>
 
-          <div class="section-container mb-8">
-            <h2 class="section-header mb-6">
-              Acteurs Impliqués
-            </h2>
-
+          <div class="section-body">
             <v-row>
+              <v-col cols="12">
+                <p class="actor-label"><strong>Acteur Principal</strong></p>
+              </v-col>
               <v-col cols="12" md="6">
                 <v-text-field
                   v-model="form.acteur1"
-                  label="Acteur Principal"
+                  label="Nom / Désignation"
                   outlined
                   dense
                   :rules="[rules.required]"
-                  placeholder="Ex: Forces de sécurité, Milices armées..."
+                  prepend-inner-icon="mdi-account-alert"
+                  placeholder="Ex : Forces de sécurité, Milices armées..."
+                  color="red darken-2"
                 ></v-text-field>
               </v-col>
               <v-col cols="12" md="6">
                 <v-text-field
                   v-model="form.assoc_acteur1"
-                  label="Acteur Associé 1"
+                  label="Entité Associée"
                   outlined
                   dense
                   :rules="[rules.required]"
-                  placeholder="Entité associée"
+                  prepend-inner-icon="mdi-link-variant"
+                  placeholder="Organisation ou entité associée"
+                  color="red darken-2"
                 ></v-text-field>
               </v-col>
             </v-row>
 
+            <v-divider class="my-4"></v-divider>
+
             <v-row>
+              <v-col cols="12">
+                <p class="actor-label">
+                  <strong>Acteur Secondaire</strong>
+                  <v-chip x-small class="ml-2 chip-optional">optionnel</v-chip>
+                </p>
+              </v-col>
               <v-col cols="12" md="6">
                 <v-text-field
                   v-model="form.acteur2"
-                  label="Acteur Secondaire (optionnel)"
+                  label="Nom / Désignation"
                   outlined
                   dense
+                  prepend-inner-icon="mdi-account"
                   placeholder="Deuxième acteur impliqué"
+                  color="red darken-1"
                 ></v-text-field>
               </v-col>
               <v-col cols="12" md="6">
                 <v-text-field
                   v-model="form.assoc_acteur2"
-                  label="Acteur Associé 2"
+                  label="Entité Associée"
                   outlined
                   dense
                   :rules="[rules.required]"
-                  placeholder="Entité associée"
+                  prepend-inner-icon="mdi-link-variant"
+                  placeholder="Organisation ou entité associée"
+                  color="red darken-1"
                 ></v-text-field>
               </v-col>
             </v-row>
           </div>
+        </div>
 
-          <!-- Section 4: Dégâts Humains -->
-          <v-divider class="my-6"></v-divider>
+        <!-- ── Section 4 : Dégâts Humains ── -->
+        <div class="section-card section-human">
+          <div class="section-head">
+            <div>
+              <span class="section-number">04</span>
+              <h2 class="section-title">Dégâts Humains</h2>
+            </div>
+          </div>
 
-          <div class="section-container mb-8">
-            <h2 class="section-header mb-6">
-              Dégâts Humains
-            </h2>
-
+          <div class="section-body">
             <v-row>
               <v-col cols="12" sm="6" md="3">
                 <v-text-field
                   v-model.number="form.degats_humains.morts"
-                  label="Nombre de Morts"
+                  label="Décès"
                   type="number"
                   outlined
                   dense
@@ -288,7 +364,7 @@
               <v-col cols="12" sm="6" md="3">
                 <v-text-field
                   v-model.number="form.degats_humains.blesses"
-                  label="Nombre de Blessés"
+                  label="Blessés"
                   type="number"
                   outlined
                   dense
@@ -299,7 +375,7 @@
               <v-col cols="12" sm="6" md="3">
                 <v-text-field
                   v-model.number="form.degats_humains.enleves_disparus"
-                  label="Nombre de Disparus"
+                  label="Disparus"
                   type="number"
                   outlined
                   dense
@@ -310,7 +386,7 @@
               <v-col cols="12" sm="6" md="3">
                 <v-text-field
                   v-model.number="form.degats_humains.expulses"
-                  label="Nombre d'Expulsés"
+                  label="Expulsés"
                   type="number"
                   outlined
                   dense
@@ -320,15 +396,18 @@
               </v-col>
             </v-row>
           </div>
+        </div>
 
-          <!-- Section 5: Dégâts Matériels -->
-          <v-divider class="my-6"></v-divider>
+        <!-- ── Section 5 : Dégâts Matériels ── -->
+        <div class="section-card section-material">
+          <div class="section-head">
+            <div>
+              <span class="section-number">05</span>
+              <h2 class="section-title">Dégâts Matériels</h2>
+            </div>
+          </div>
 
-          <div class="section-container mb-8">
-            <h2 class="section-header mb-6">
-              Dégâts Matériels
-            </h2>
-
+          <div class="section-body">
             <v-row>
               <v-col cols="12" sm="6" md="4">
                 <v-text-field
@@ -339,6 +418,8 @@
                   dense
                   min="0"
                   :rules="[rules.nonNegative]"
+                  prepend-inner-icon="mdi-car-wrench"
+                  color="amber darken-3"
                 ></v-text-field>
               </v-col>
               <v-col cols="12" sm="6" md="4">
@@ -350,6 +431,8 @@
                   dense
                   min="0"
                   :rules="[rules.nonNegative]"
+                  prepend-inner-icon="mdi-domain"
+                  color="amber darken-3"
                 ></v-text-field>
               </v-col>
               <v-col cols="12" sm="6" md="4">
@@ -361,97 +444,91 @@
                   dense
                   min="0"
                   :rules="[rules.nonNegative]"
+                  prepend-inner-icon="mdi-bridge"
+                  color="amber darken-3"
                 ></v-text-field>
               </v-col>
             </v-row>
 
             <v-textarea
               v-model="form.degats_materiels.autres_degats"
-              label="Autres Dégâts"
+              label="Autres Dégâts Matériels"
               outlined
-              dense
               rows="3"
               counter
               maxlength="1000"
-              placeholder="Décrivez les autres dégâts matériels..."
+              prepend-inner-icon="mdi-text-box"
+              placeholder="Décrivez les autres dégâts matériels observés..."
+              color="amber darken-3"
             ></v-textarea>
           </div>
+        </div>
 
-          <!-- Boutons d'action -->
-          <v-divider class="my-6"></v-divider>
+        <!-- ── Action Buttons ── -->
+        <div class="action-bar">
+          <v-btn
+            depressed
+            large
+            class="btn-submit"
+            @click="submitForm"
+            :loading="submitting"
+            :disabled="!formValid || submitting"
+          >
+            Enregistrer les données
+          </v-btn>
+          <v-btn
+            outlined
+            large
+            class="btn-reset ml-4"
+            @click="resetForm"
+          >
+            Réinitialiser
+          </v-btn>
+        </div>
 
-          <v-row class="mt-8">
-            <v-col cols="12" class="d-flex gap-3">
-              <v-btn
-                color="primary"
-                size="large"
-                @click="submitForm"
-                :loading="submitting"
-                :disabled="!formValid || submitting"
-              >
-                Enregistrer les données
-              </v-btn>
-              <v-btn
-                outlined
-                color="primary"
-                size="large"
-                @click="resetForm"
-              >
-                Réinitialiser
-              </v-btn>
-            </v-col>
-          </v-row>
-        </v-form>
-      </v-card-text>
-    </v-card>
+      </v-form>
+    </div>
 
-    <!-- Dialog de confirmation - Succès -->
-    <v-dialog v-model="successDialog" max-width="500" persistent>
-      <v-card class="success-card">
-        <v-card-text class="text-center pa-8">
-          <h2 class="headline font-weight-bold mb-4">Succès !</h2>
-          <p class="body-1 mb-6">
-            Les données ont été enregistrées avec succès dans la base de données.
+    <!-- ══════════════ DIALOG SUCCÈS ══════════════ -->
+    <v-dialog v-model="successDialog" max-width="480" persistent>
+      <v-card class="dialog-card">
+        <div class="dialog-header dialog-header--success">
+          <h2 class="dialog-header-title">Enregistrement réussi</h2>
+        </div>
+        <v-card-text class="text-center pt-6 pb-4 px-8">
+          <p class="dialog-body">
+            Les données sécuritaires ont été enregistrées avec succès dans la base de données.
           </p>
-          <p class="caption grey--text">
-            ID du document: <code class="font-weight-bold">{{ documentId }}</code>
-          </p>
+          <v-chip small label color="#e8f5e9" text-color="#2e7d32" class="mt-3">{{ documentId }}</v-chip>
         </v-card-text>
-        <v-divider></v-divider>
-        <v-card-actions class="pa-4">
-          <v-spacer></v-spacer>
-          <v-btn color="primary" @click="closeSuccessDialog">
-            Fermer
-          </v-btn>
-          <v-btn color="primary" @click="submitAnotherForm">
-            Ajouter un autre incident
-          </v-btn>
+        <v-card-actions class="pb-6 px-6 justify-center">
+          <v-btn outlined color="success" class="mr-3" @click="closeSuccessDialog">Fermer</v-btn>
+          <v-btn depressed color="success" dark @click="submitAnotherForm">Nouvel incident</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
 
-    <!-- Dialog d'erreur -->
-    <v-dialog v-model="errorDialog" max-width="500">
-      <v-card class="error-card">
-        <v-card-text class="text-center pa-8">
-          <h2 class="headline font-weight-bold mb-4">Erreur</h2>
-          <p class="body-1 mb-4">{{ errorMessage }}</p>
+    <!-- ══════════════ DIALOG ERREUR ══════════════ -->
+    <v-dialog v-model="errorDialog" max-width="480">
+      <v-card class="dialog-card">
+        <div class="dialog-header dialog-header--error">
+          <h2 class="dialog-header-title">Erreur d'enregistrement</h2>
+        </div>
+        <v-card-text class="text-center pt-6 pb-4 px-8">
+          <p class="dialog-body mt-3">{{ errorMessage }}</p>
         </v-card-text>
-        <v-divider></v-divider>
-        <v-card-actions class="pa-4">
-          <v-spacer></v-spacer>
-          <v-btn color="primary" @click="errorDialog = false">
-            Fermer
-          </v-btn>
+        <v-card-actions class="pb-6 px-6 justify-center">
+          <v-btn depressed color="error" dark @click="errorDialog = false">Fermer</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
+
   </v-container>
 </template>
 
 <script>
-import axios from "axios";
-import config from "@/config";
+//import axios from "axios";
+import api from "@/services/api";
 
 export default {
   data() {
@@ -517,13 +594,6 @@ export default {
 
       this.submitting = true;
 
-      const authOptions = {
-        auth: {
-          username: "elastic",
-          password: "ZuCI2sJBt3M=CMph9Y47",
-        },
-      };
-
       // Conversion des types numériques
       const dataToSubmit = {
         ...this.form,
@@ -543,12 +613,8 @@ export default {
         longitude: this.form.longitude ? parseFloat(this.form.longitude) : null,
       };
 
-      axios
-        .post(
-          `${config.URL_BASE}/intel_v1/_doc/`,
-          dataToSubmit,
-          authOptions
-        )
+      api.intel
+        .create(dataToSubmit)
         .then((response) => {
           console.log("✅ Données enregistrées avec succès:", response.data);
           this.documentId = response.data._id;
@@ -629,152 +695,230 @@ export default {
 </script>
 
 <style scoped>
+/* ══════════════════════════════════════════════════
+   GLOBAL
+══════════════════════════════════════════════════ */
 .dashboard-container {
-  background: #ffffff;
+  background: #f0f2f5;
   min-height: 100vh;
-  padding: 2rem 0;
 }
 
-/* Header Section */
-.header-section {
-  background: #ffffff;
-  color: #333;
-  padding: 2rem;
-  border-bottom: 1px solid #e0e0e0;
+/* ══════════════════════════════════════════════════
+   HERO HEADER
+══════════════════════════════════════════════════ */
+.hero-header {
+  background: #1a2744;
+  padding: 2.5rem 2rem;
   text-align: center;
 }
 
-.header-section h1 {
-  margin: 0;
-  font-size: 2rem;
+.hero-title {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #ffffff;
+  letter-spacing: -0.2px;
+  margin-bottom: 0.5rem;
 }
 
-.header-section p {
-  margin: 0.5rem 0 0 0;
-  color: #666;
+.hero-subtitle {
   font-size: 0.95rem;
-}
-
-/* Form Card */
-.form-card {
-  border-radius: 0;
-  max-width: 1200px;
-  margin: 0 auto;
-  background: #ffffff;
-  border: 1px solid #e0e0e0;
-}
-
-/* Section Container */
-.section-container {
-  padding: 2rem;
-  background: #ffffff;
-  border-bottom: 1px solid #e0e0e0;
-}
-
-.section-header {
-  font-size: 1.3rem;
-  font-weight: 600;
-  color: #333;
-  border-bottom: 1px solid #ccc;
-  padding-bottom: 1rem;
-  margin: 0;
-}
-
-/* Input Fields */
-.v-text-field,
-.v-textarea,
-.v-select {
+  color: rgba(255, 255, 255, 0.65);
   margin-bottom: 1rem;
 }
 
-/* Buttons */
-.v-btn {
-  border-radius: 0;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+.hero-chips {
+  display: flex;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+/* ══════════════════════════════════════════════════
+   STEPS BAR
+══════════════════════════════════════════════════ */
+.steps-bar {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ffffff;
+  border-bottom: 1px solid #dde3ec;
+  padding: 0.75rem 2rem;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.step-item {
+  display: flex;
+  align-items: center;
+  font-size: 0.78rem;
   font-weight: 600;
+  color: #546e7a;
+  padding: 0.25rem 0.75rem;
+  border: 1px solid #cfd8dc;
+  background: #f5f7f8;
 }
 
-/* Success Card */
-.success-card {
-  border-radius: 0;
-  border-top: none;
+.step-separator {
+  width: 20px;
+  height: 1px;
+  background: #cfd8dc;
 }
 
-.success-card code {
-  background: #f5f5f5;
-  padding: 4px 8px;
-  border-radius: 0;
-  font-family: monospace;
+/* ══════════════════════════════════════════════════
+   FORM WRAPPER
+══════════════════════════════════════════════════ */
+.form-wrapper {
+  max-width: 1100px;
+  margin: 1.75rem auto;
+  padding: 0 1.25rem 3rem;
 }
 
-/* Error Card */
-.error-card {
-  border-radius: 0;
-  border-top: none;
+/* ══════════════════════════════════════════════════
+   SECTION CARDS
+══════════════════════════════════════════════════ */
+.section-card {
+  background: #ffffff;
+  border: 1px solid #dde3ec;
+  margin-bottom: 1.5rem;
+  overflow: hidden;
 }
 
-/* Divider */
-.v-divider {
+/* Section Head */
+.section-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid #e8eaed;
+  background: #f7f8fa;
+}
+
+.section-number {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 1.5px;
+  color: #9eaac4;
+  display: block;
+  line-height: 1;
+  margin-bottom: 2px;
+  text-transform: uppercase;
+}
+
+.section-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #1a2744;
   margin: 0;
-  border-color: #e0e0e0;
+  line-height: 1.2;
 }
 
-/* Responsive */
+.chip-required {
+  font-size: 0.7rem !important;
+  color: #c62828 !important;
+  background: #ffebee !important;
+  border: 1px solid #ef9a9a !important;
+  border-radius: 0 !important;
+}
+
+.chip-optional {
+  font-size: 0.65rem !important;
+  color: #616161 !important;
+  background: #eeeeee !important;
+  border-radius: 0 !important;
+}
+
+/* Section Body */
+.section-body {
+  padding: 1.5rem;
+}
+
+/* ══════════════════════════════════════════════════
+   ACTOR LABEL
+══════════════════════════════════════════════════ */
+.actor-label {
+  display: flex;
+  align-items: center;
+  font-size: 0.9rem;
+  color: #37474f;
+  margin-bottom: 0.5rem;
+}
+
+/* ══════════════════════════════════════════════════
+   ACTION BAR
+══════════════════════════════════════════════════ */
+.action-bar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 1.25rem 1.5rem;
+  background: #ffffff;
+  border: 1px solid #dde3ec;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.btn-submit {
+  background: #1a2744 !important;
+  color: #ffffff !important;
+  border-radius: 0 !important;
+  font-weight: 600 !important;
+  letter-spacing: 0.3px !important;
+  text-transform: none !important;
+  padding: 0 1.5rem !important;
+}
+
+.btn-reset {
+  border-radius: 0 !important;
+  font-weight: 600 !important;
+  text-transform: none !important;
+  color: #546e7a !important;
+  border-color: #b0bec5 !important;
+}
+
+/* ══════════════════════════════════════════════════
+   DIALOGS
+══════════════════════════════════════════════════ */
+.dialog-card {
+  border-radius: 0 !important;
+  overflow: hidden;
+}
+
+.dialog-header {
+  padding: 1.25rem 1.5rem;
+}
+
+.dialog-header--success { background: #2e7d32; }
+.dialog-header--error   { background: #c62828; }
+
+.dialog-header-title {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+}
+
+.dialog-body {
+  font-size: 0.95rem;
+  color: #546e7a;
+  line-height: 1.6;
+}
+
+/* ══════════════════════════════════════════════════
+   RESPONSIVE
+══════════════════════════════════════════════════ */
 @media (max-width: 960px) {
-  .header-section {
-    padding: 1.5rem;
-  }
-
-  .header-section h1 {
-    font-size: 1.5rem;
-  }
-
-  .section-container {
-    padding: 1.5rem;
-  }
-
-  .section-header {
-    font-size: 1.1rem;
-  }
-
-  .form-card {
-    margin: 0 1rem;
-  }
+  .hero-title  { font-size: 1.4rem; }
+  .hero-header { padding: 2rem 1.25rem; }
+  .steps-bar   { padding: 0.6rem 1rem; }
 }
 
 @media (max-width: 600px) {
-  .dashboard-container {
-    padding: 1rem 0;
-  }
-
-  .header-section {
-    padding: 1rem;
-  }
-
-  .header-section h1 {
-    font-size: 1.25rem;
-  }
-
-  .section-container {
-    padding: 1rem;
-  }
-
-  .section-header {
-    font-size: 1rem;
-  }
-
-  .gap-3 {
-    gap: 0.5rem !important;
-  }
-
-  .v-btn {
-    width: 100%;
-  }
-}
-
-/* Utility classes */
-.gap-3 {
-  gap: 1rem;
+  .hero-title    { font-size: 1.15rem; }
+  .hero-subtitle { font-size: 0.85rem; }
+  .form-wrapper  { padding: 1rem 0.75rem 2rem; }
+  .section-body  { padding: 1rem; }
+  .steps-bar     { display: none; }
+  .action-bar    { justify-content: center; }
+  .btn-submit, .btn-reset { width: 100%; margin-left: 0 !important; }
 }
 </style>
