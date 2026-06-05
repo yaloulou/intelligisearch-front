@@ -352,7 +352,7 @@
             <v-row>
               <v-col cols="12" sm="6" md="3">
                 <v-text-field
-                  v-model.number="form.degats_humains.morts"
+                  v-model.number="form.degats_humains.morts_civils"
                   label="Décès"
                   type="number"
                   outlined
@@ -363,7 +363,7 @@
               </v-col>
               <v-col cols="12" sm="6" md="3">
                 <v-text-field
-                  v-model.number="form.degats_humains.blesses"
+                  v-model.number="form.degats_humains.blesses_civils"
                   label="Blessés"
                   type="number"
                   outlined
@@ -387,6 +387,72 @@
                 <v-text-field
                   v-model.number="form.degats_humains.expulses"
                   label="Expulsés"
+                  type="number"
+                  outlined
+                  dense
+                  min="0"
+                  :rules="[rules.nonNegative]"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="12" sm="6" md="3">
+                <v-text-field
+                  v-model.number="form.degats_humains.morts_allies"
+                  label="Morts allies"
+                  type="number"
+                  outlined
+                  dense
+                  min="0"
+                  :rules="[rules.nonNegative]"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="12" sm="6" md="3">
+                <v-text-field
+                  v-model.number="form.degats_humains.morts_ennemis"
+                  label="Morts ennemis"
+                  type="number"
+                  outlined
+                  dense
+                  min="0"
+                  :rules="[rules.nonNegative]"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="12" sm="6" md="3">
+                <v-text-field
+                  v-model.number="form.degats_humains.blesses_allies"
+                  label="Blesses allies"
+                  type="number"
+                  outlined
+                  dense
+                  min="0"
+                  :rules="[rules.nonNegative]"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="12" sm="6" md="3">
+                <v-text-field
+                  v-model.number="form.degats_humains.blesses_ennemis"
+                  label="Blesses ennemis"
+                  type="number"
+                  outlined
+                  dense
+                  min="0"
+                  :rules="[rules.nonNegative]"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="12" sm="6" md="3">
+                <v-text-field
+                  v-model.number="form.degats_humains.arrestations_interpellations"
+                  label="Arrestations/Interpellations"
+                  type="number"
+                  outlined
+                  dense
+                  min="0"
+                  :rules="[rules.nonNegative]"
+                ></v-text-field>
+              </v-col>
+              <v-col cols="12" sm="6" md="3">
+                <v-text-field
+                  v-model.number="form.degats_humains.violences_sexuelles"
+                  label="Violences sexuelles"
                   type="number"
                   outlined
                   dense
@@ -561,10 +627,16 @@ export default {
         
         // Dégâts
         degats_humains: {
-          morts: 0,
-          blesses: 0,
+          morts_civils: 0,
+          morts_allies: 0,
+          morts_ennemis: 0,
+          blesses_civils: 0,
+          blesses_allies: 0,
+          blesses_ennemis: 0,
           enleves_disparus: 0,
           expulses: 0,
+          arrestations_interpellations: 0,
+          violences_sexuelles: 0,
         },
         degats_materiels: {
           degat_vehicules: 0,
@@ -598,10 +670,16 @@ export default {
       const dataToSubmit = {
         ...this.form,
         degats_humains: {
-          morts: parseInt(this.form.degats_humains.morts) || 0,
-          blesses: parseInt(this.form.degats_humains.blesses) || 0,
+          morts_civils: parseInt(this.form.degats_humains.morts_civils) || 0,
+          morts_allies: parseInt(this.form.degats_humains.morts_allies) || 0,
+          morts_ennemis: parseInt(this.form.degats_humains.morts_ennemis) || 0,
+          blesses_civils: parseInt(this.form.degats_humains.blesses_civils) || 0,
+          blesses_allies: parseInt(this.form.degats_humains.blesses_allies) || 0,
+          blesses_ennemis: parseInt(this.form.degats_humains.blesses_ennemis) || 0,
           enleves_disparus: parseInt(this.form.degats_humains.enleves_disparus) || 0,
           expulses: parseInt(this.form.degats_humains.expulses) || 0,
+          arrestations_interpellations: parseInt(this.form.degats_humains.arrestations_interpellations) || 0,
+          violences_sexuelles: parseInt(this.form.degats_humains.violences_sexuelles) || 0,
         },
         degats_materiels: {
           degat_vehicules: parseInt(this.form.degats_materiels.degat_vehicules) || 0,
@@ -661,10 +739,16 @@ export default {
         
         // Dégâts
         degats_humains: {
-          morts: 0,
-          blesses: 0,
+          morts_civils: 0,
+          morts_allies: 0,
+          morts_ennemis: 0,
+          blesses_civils: 0,
+          blesses_allies: 0,
+          blesses_ennemis: 0,
           enleves_disparus: 0,
           expulses: 0,
+          arrestations_interpellations: 0,
+          violences_sexuelles: 0,
         },
         degats_materiels: {
           degat_vehicules: 0,

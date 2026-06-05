@@ -109,10 +109,10 @@
           <template v-slot:item.degats="{ item }">
             <span class="degats-cell">
               <span class="degat-badge degat-mort">
-                <v-icon x-small>mdi-skull</v-icon> {{ item.degats_humains?.morts ?? 0 }}
+                <v-icon x-small>mdi-skull</v-icon> {{ totalMorts(item.degats_humains) }}
               </span>
               <span class="degat-badge degat-blesse">
-                <v-icon x-small>mdi-hospital</v-icon> {{ item.degats_humains?.blesses ?? 0 }}
+                <v-icon x-small>mdi-hospital</v-icon> {{ totalBlesses(item.degats_humains) }}
               </span>
               <span v-if="(item.degats_materiels?.degat_batiments ?? 0) > 0" class="degat-badge degat-batiment">
                 <v-icon x-small>mdi-home-remove</v-icon> {{ item.degats_materiels?.degat_batiments ?? 0 }}
@@ -221,16 +221,26 @@
             <h5 class="mt-4 mb-2">Dégâts Humains</h5>
             <v-row>
               <v-col cols="12" md="3">
-                <v-text-field v-model.number="currentItem.degats_humains.morts" label="Morts" type="number" outlined dense />
+                <v-text-field v-model.number="currentItem.degats_humains.morts_civils" label="Morts civils" type="number" outlined dense />
+                <v-text-field v-model.number="currentItem.degats_humains.morts_allies" label="Morts alliés" type="number" outlined dense />
+                <v-text-field v-model.number="currentItem.degats_humains.morts_ennemis" label="Morts ennemis" type="number" outlined dense />
               </v-col>
               <v-col cols="12" md="3">
-                <v-text-field v-model.number="currentItem.degats_humains.blesses" label="Blessés" type="number" outlined dense />
+                <v-text-field v-model.number="currentItem.degats_humains.blesses_civils" label="Blessés civils" type="number" outlined dense />
+                <v-text-field v-model.number="currentItem.degats_humains.blesses_allies" label="Blessés alliés" type="number" outlined dense />
+                <v-text-field v-model.number="currentItem.degats_humains.blesses_ennemis" label="Blessés ennemis" type="number" outlined dense />
               </v-col>
               <v-col cols="12" md="3">
                 <v-text-field v-model.number="currentItem.degats_humains.enleves_disparus" label="Enlevés/Disparus" type="number" outlined dense />
               </v-col>
               <v-col cols="12" md="3">
                 <v-text-field v-model.number="currentItem.degats_humains.expulses" label="Expulsés" type="number" outlined dense />
+              </v-col>
+              <v-col cols="12" md="3">
+                <v-text-field v-model.number="currentItem.degats_humains.arrestations_interpellations" label="Arrestations/Interpellations" type="number" outlined dense />
+              </v-col>
+              <v-col cols="12" md="3">
+                <v-text-field v-model.number="currentItem.degats_humains.violences_sexuelles" label="Violences sexuelles" type="number" outlined dense />
               </v-col>
             </v-row>
 
@@ -248,6 +258,9 @@
               </v-col>
               <v-col cols="12">
                 <v-textarea v-model="currentItem.degats_materiels.autres_degats" label="Autres dégâts" outlined dense rows="2" />
+              </v-col>
+              <v-col cols="12">
+                <v-textarea v-model="currentItem.degats_materiels.autres_bilans" label="Autres bilans" outlined dense rows="2" />
               </v-col>
             </v-row>
           </v-form>
@@ -338,16 +351,68 @@ export default {
           source_ref: "",
         },
         degats_humains: {
-          morts: 0,
-          blesses: 0,
+          morts_civils: 0,
+          morts_allies: 0,
+          morts_ennemis: 0,
+          blesses_civils: 0,
+          blesses_allies: 0,
+          blesses_ennemis: 0,
           enleves_disparus: 0,
           expulses: 0,
+          arrestations_interpellations: 0,
+          violences_sexuelles: 0,
         },
         degats_materiels: {
           degat_vehicules: 0,
           degat_batiments: 0,
           degat_infrastructures: 0,
           autres_degats: "",
+          autres_bilans: "",
+        },
+      };
+    },
+
+    safeInt(value) {
+      const parsed = parseInt(value, 10);
+      return Number.isFinite(parsed) ? parsed : 0;
+    },
+
+    totalMorts(degats = {}) {
+      return this.safeInt(degats.morts_civils ?? degats.morts) +
+        this.safeInt(degats.morts_allies) +
+        this.safeInt(degats.morts_ennemis);
+    },
+
+    totalBlesses(degats = {}) {
+      return this.safeInt(degats.blesses_civils ?? degats.blesses) +
+        this.safeInt(degats.blesses_allies) +
+        this.safeInt(degats.blesses_ennemis);
+    },
+
+    sanitizeIntelPayload(doc) {
+      const degatsHumains = doc.degats_humains || {};
+      const degatsMateriels = doc.degats_materiels || {};
+
+      return {
+        ...doc,
+        degats_humains: {
+          morts_civils: this.safeInt(degatsHumains.morts_civils ?? degatsHumains.morts),
+          morts_allies: this.safeInt(degatsHumains.morts_allies),
+          morts_ennemis: this.safeInt(degatsHumains.morts_ennemis),
+          blesses_civils: this.safeInt(degatsHumains.blesses_civils ?? degatsHumains.blesses),
+          blesses_allies: this.safeInt(degatsHumains.blesses_allies),
+          blesses_ennemis: this.safeInt(degatsHumains.blesses_ennemis),
+          enleves_disparus: this.safeInt(degatsHumains.enleves_disparus),
+          expulses: this.safeInt(degatsHumains.expulses),
+          arrestations_interpellations: this.safeInt(degatsHumains.arrestations_interpellations),
+          violences_sexuelles: this.safeInt(degatsHumains.violences_sexuelles),
+        },
+        degats_materiels: {
+          degat_vehicules: this.safeInt(degatsMateriels.degat_vehicules),
+          degat_batiments: this.safeInt(degatsMateriels.degat_batiments),
+          degat_infrastructures: this.safeInt(degatsMateriels.degat_infrastructures),
+          autres_degats: degatsMateriels.autres_degats || "",
+          autres_bilans: degatsMateriels.autres_bilans || "",
         },
       };
     },
@@ -390,8 +455,8 @@ export default {
         });
 
         this.results = (res.data.items || []).map((item) => ({
-          id: item._id || item.id,
           ...item,
+          id: item._id || item.id,
         }));
       } catch (error) {
         console.error("Erreur lors de la recherche:", error);
@@ -418,23 +483,79 @@ export default {
       }
     },
 
-    editItem(item) {
-      const copy = JSON.parse(JSON.stringify(item));
+    normalizeItemForEdit(item) {
+      const copy = JSON.parse(JSON.stringify(item || {}));
       const empty = this.emptyItem();
+      const location = copy.location || {};
+      const event = copy.event && typeof copy.event === "object" ? copy.event : {};
+      const source = copy.source && typeof copy.source === "object" ? copy.source : {};
+      const legacyEventType = typeof copy.event === "string" ? copy.event : undefined;
+      const actors = Array.isArray(copy.actors) && copy.actors.length
+        ? copy.actors.map((actor, index) => ({
+            ...(empty.actors[index] || {}),
+            ...actor,
+          }))
+        : [
+            {
+              ...empty.actors[0],
+              nom: copy.acteur1 || "",
+              assoc: copy.assoc_acteur1 || "",
+            },
+            {
+              ...empty.actors[1],
+              nom: copy.acteur2 || "",
+              assoc: copy.assoc_acteur2 || "",
+            },
+          ];
 
-      this.currentItem = {
+      return {
         ...empty,
         ...copy,
-        id: copy.id,
-        location: { ...empty.location, ...(copy.location || {}) },
-        event: { ...empty.event, ...(copy.event || {}) },
-        actors: copy.actors?.length
-          ? copy.actors.map((a, i) => ({ ...empty.actors[i] || {}, ...a }))
-          : empty.actors,
-        source: { ...empty.source, ...(copy.source || {}) },
-        degats_humains: { ...empty.degats_humains, ...(copy.degats_humains || {}) },
-        degats_materiels: { ...empty.degats_materiels, ...(copy.degats_materiels || {}) },
+        id: copy._id || copy.id,
+        location: {
+          ...empty.location,
+          ...location,
+          province_region: location.province_region || copy.province_region || "",
+          territoire_ville: location.territoire_ville || copy.territoire_ville || "",
+          secteur_chefferie_commune: location.secteur_chefferie_commune || copy.secteur_chefferie_commune || "",
+          groupement_quartier: location.groupement_quartier || copy.groupement_quartier || "",
+          localite_village_lieuprecis: location.localite_village_lieuprecis || copy.localite_village_lieuprecis || "",
+          latitude: location.latitude ?? copy.latitude ?? copy.geo?.lat ?? null,
+          longitude: location.longitude ?? copy.longitude ?? copy.geo?.lon ?? null,
+          pays: location.pays || copy.pays || empty.location.pays,
+          geoprecision: location.geoprecision || copy.geoprecision || "",
+        },
+        event: {
+          ...empty.event,
+          ...event,
+          date_event: event.date_event || copy.date_event || "",
+          event_type: event.event_type || copy.event_type || legacyEventType || "",
+          categorie: event.categorie || copy.categorie || "",
+          description: event.description || copy.description || "",
+        },
+        actors,
+        source: {
+          ...empty.source,
+          ...source,
+          source_type: source.source_type || copy.source_type || "",
+          source_name: source.source_name || (typeof copy.source === "string" ? copy.source : copy.source_name) || "",
+          source_ref: source.source_ref || copy.source_ref || "",
+        },
+        degats_humains: {
+          ...empty.degats_humains,
+          ...(copy.degats_humains || {}),
+          morts_civils: copy.degats_humains?.morts_civils ?? copy.degats_humains?.morts ?? 0,
+          blesses_civils: copy.degats_humains?.blesses_civils ?? copy.degats_humains?.blesses ?? 0,
+        },
+        degats_materiels: {
+          ...empty.degats_materiels,
+          ...(copy.degats_materiels || {}),
+        },
       };
+    },
+
+    editItem(item) {
+      this.currentItem = this.normalizeItemForEdit(item);
 
       this.editDialog = true;
     },
@@ -453,7 +574,24 @@ export default {
           return;
         }
 
-        await api.intel.update(id, doc);
+        const missingFields = [
+          { label: "Province/Région", value: doc.location?.province_region },
+          { label: "Territoire/Ville", value: doc.location?.territoire_ville },
+          { label: "Localité / Lieu précis", value: doc.location?.localite_village_lieuprecis },
+          { label: "Date", value: doc.event?.date_event },
+          { label: "Type d'événement", value: doc.event?.event_type },
+          { label: "Description", value: doc.event?.description },
+        ].filter((field) => !String(field.value || "").trim());
+
+        if (missingFields.length) {
+          console.error(
+            "Impossible de sauvegarder: champs obligatoires manquants:",
+            missingFields.map((field) => field.label).join(", ")
+          );
+          return;
+        }
+
+        await api.intel.update(id, this.sanitizeIntelPayload(doc));
 
         await this.performSearch();
         this.closeEditDialog();

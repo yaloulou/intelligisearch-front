@@ -10,10 +10,10 @@ const redirectUrl =
     : "https://demo.flatlogic.com/vue-material";
 
 // URL unique pour la base de données Elasticsearch (legacy, ne plus utiliser dans les composants)
-const URL_BASE = process.env.VUE_APP_ELASTICSEARCH_URL || "http://41.79.235.212:9200";
+const URL_BASE = process.env.VUE_APP_ELASTICSEARCH_URL || "http://192.168.15.8:9200";
 
 // URL du backend NestJS intermédiaire
-const API_BASE = process.env.VUE_APP_API_BASE || "http://192.168.15.8:3000";
+const API_BASE ="http://localhost:3000";
 
 export default {
   light: {

@@ -273,6 +273,29 @@ export default {
       return Number.isFinite(n) ? n : 0;
     },
 
+    calcTotalMorts(degats = {}) {
+      return this.safeInt(degats.morts_civils ?? degats.morts) +
+        this.safeInt(degats.morts_allies) +
+        this.safeInt(degats.morts_ennemis);
+    },
+
+    calcTotalBlesses(degats = {}) {
+      return this.safeInt(degats.blesses_civils ?? degats.blesses) +
+        this.safeInt(degats.blesses_allies) +
+        this.safeInt(degats.blesses_ennemis);
+    },
+
+    normalizeIncident(incident = {}) {
+      return {
+        ...incident,
+        date_event: incident.event?.date_event || incident.date_event,
+        province_region: incident.location?.province_region || incident.province_region,
+        territoire_ville: incident.location?.territoire_ville || incident.territoire_ville,
+        event: incident.event?.event_type || incident.event,
+        description: incident.event?.description || incident.description,
+      };
+    },
+
     // ─── API calls via NestJS middleware ───────────────────────
 
     async fetchProvinceOptions() {
@@ -331,8 +354,7 @@ export default {
         }
 
         const res = await axios.get(`${API_BASE}/api/intel-dashboard/data`, { params });
-        // API returns { incidents: object[] }
-        const incidents = res.data.incidents || [];
+        const incidents = res.data.incidents || res.data.items || [];
 
         this.processDashboardData(incidents);
 
@@ -351,14 +373,15 @@ export default {
     // ─── Data processing (unchanged) ──────────────────────────
 
     processDashboardData(incidents) {
+      incidents = (incidents || []).map(this.normalizeIncident);
       this.totalIncidents = incidents.length;
 
       this.totalMorts = incidents.reduce(
-        (sum, inc) => sum + this.safeInt(inc?.degats_humains?.morts),
+        (sum, inc) => sum + this.calcTotalMorts(inc?.degats_humains),
         0
       );
       this.totalBlesses = incidents.reduce(
-        (sum, inc) => sum + this.safeInt(inc?.degats_humains?.blesses),
+        (sum, inc) => sum + this.calcTotalBlesses(inc?.degats_humains),
         0
       );
 
@@ -374,10 +397,10 @@ export default {
 
       this.natureDeathsChartOptions.xaxis.categories = Object.keys(byEvent);
       this.natureDeathsChartData[0].data = Object.values(byEvent).map((arr) =>
-        arr.reduce((s, inc) => s + this.safeInt(inc?.degats_humains?.morts), 0)
+        arr.reduce((s, inc) => s + this.calcTotalMorts(inc?.degats_humains), 0)
       );
       this.natureDeathsChartData[1].data = Object.values(byEvent).map((arr) =>
-        arr.reduce((s, inc) => s + this.safeInt(inc?.degats_humains?.blesses), 0)
+        arr.reduce((s, inc) => s + this.calcTotalBlesses(inc?.degats_humains), 0)
       );
 
       // Time chart (date_event)
