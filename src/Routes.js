@@ -85,7 +85,7 @@ import Maps from "@/pages/Documentation/pages/Maps/Maps";
 import Tables from "@/pages/Documentation/pages/Tables/Tables";
 import Structure from "@/pages/Documentation/pages/Structure/Structure";
 import Libs from "@/pages/Documentation/pages/Libs/Libs";
-import { isAuthenticated, getTokenPayload } from "./mixins/auth";
+import { getTokenPayload } from "./mixins/auth";
 import UsersAdmin from "@/pages/Admin/Users";
 
 Vue.use(Router);

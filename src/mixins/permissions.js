@@ -1,4 +1,4 @@
-import { mapGetters, mapState } from "vuex";
+import { mapGetters } from "vuex";
 
 export const PermissionsMixin = {
   computed: {

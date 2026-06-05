@@ -228,7 +228,8 @@ export default {
       this.saving = true;
       try {
         if (this.editingUser) {
-          const { password, ...data } = this.form;
+          const data = { ...this.form };
+          delete data.password;
           await api.users.update(this.editingUser._id, data);
           this.showSnackbar("Utilisateur modifié avec succès");
         } else {
