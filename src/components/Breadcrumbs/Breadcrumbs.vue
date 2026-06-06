@@ -9,7 +9,7 @@
       </template>
       <template
         v-slot:item="{ item }">
-        <v-breadcrumbs-item  :to="item.to" link class="text-capitalize">
+        <v-breadcrumbs-item :to="item.to" link>
           {{ item.text }}
         </v-breadcrumbs-item>
       </template>
@@ -21,18 +21,32 @@
 export default {
   computed: {
     breadcrumbsGen() {
-      let pathArray = this.$route.path.split("/");
-      pathArray.shift();
-      let breadcrumbs = pathArray.reduce((breadcrumbArray, patch) => {
-        breadcrumbArray.push({
-          text: patch,
-          to: null
-        })
-        return breadcrumbArray;
-      }, [])
-      breadcrumbs.unshift({text: 'App', to: '/dashboard'});
-      return breadcrumbs;
-    }
+      const labelByPath = {
+        "/dashboard": "Enregistrer CCOC",
+        "/search": "Rechercher CCOC",
+        "/poldiplo": "Entités",
+        "/observations": "Informations",
+        "/extra/events": "Renseignements",
+        "/extra/links": "Relations",
+        "/admin/users": "Gestion utilisateurs",
+        "/profile": "Profil entité",
+        "/incident": "Détails CCOC",
+      };
+
+      const currentPath = this.$route.path;
+      const matchedPath = Object.keys(labelByPath)
+        .sort((a, b) => b.length - a.length)
+        .find((path) => currentPath === path || currentPath.startsWith(`${path}/`));
+
+      const text = matchedPath
+        ? labelByPath[matchedPath]
+        : this.$route.name || currentPath.split("/").filter(Boolean).pop();
+
+      return [
+        { text: "App", to: "/dashboard" },
+        { text, to: null },
+      ];
+    },
   },
   methods: {
     homePage() {
@@ -43,4 +57,3 @@ export default {
 </script>
 
 <style src="./Breadcrumbs.scss" lang="scss"></style>
-

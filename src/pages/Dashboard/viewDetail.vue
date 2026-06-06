@@ -121,26 +121,7 @@
           </v-col>
 
           <!-- Comment Section -->
-          <v-col cols="12">
-            <v-textarea
-              v-model="comment"
-              label="Ajouter un commentaire"
-              outlined
-              dense
-              placeholder="Écrivez votre commentaire ici..."
-              class="mt-3"
-            ></v-textarea>
-          </v-col>
-
-          <!-- Validation Buttons -->
-          <v-col cols="12" class="d-flex justify-space-between mt-3">
-            <v-btn color="success" @click="validateIncident(true)">
-              <v-icon left>mdi-check-circle</v-icon> Valider l'information
-            </v-btn>
-            <v-btn color="error" @click="validateIncident(false)">
-              <v-icon left>mdi-close-circle</v-icon> Demander plus d'éléments
-            </v-btn>
-          </v-col>
+          
         </v-row>
       </v-card-text>
     </v-card>

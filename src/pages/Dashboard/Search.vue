@@ -1,5 +1,8 @@
 <template>
   <v-container fluid class="search-page pa-4">
+    <div class="page-heading mb-4">
+      <h2 class="mb-1">Rechercher CCOC</h2>
+    </div>
 
     <!-- ── Barre de filtres compacte ── -->
     <div class="filter-bar">
@@ -137,7 +140,7 @@
     <!-- Edit Dialog -->
     <v-dialog v-model="editDialog" max-width="900px">
       <v-card>
-        <v-card-title class="headline">Modifier l'incident</v-card-title>
+        <v-card-title class="headline">Modifier le CCOC</v-card-title>
 
         <v-card-text>
           <v-form ref="editForm">
@@ -180,7 +183,7 @@
                 <v-text-field v-model="currentItem.event.date_event" label="Date" type="date" outlined dense />
               </v-col>
               <v-col cols="12" md="4">
-                <v-text-field v-model="currentItem.event.event_type" label="Type d'événement" outlined dense />
+                <v-text-field v-model="currentItem.event.event_type" label="Type de CCOC" outlined dense />
               </v-col>
               <v-col cols="12" md="4">
                 <v-text-field v-model="currentItem.event.categorie" label="Catégorie" outlined dense />
@@ -301,7 +304,7 @@ export default {
       headers: [
         { text: "Date", value: "date_event" },
         { text: "Province", value: "province_region" },
-        { text: "Type d'événement", value: "event_type" },
+        { text: "Type de CCOC", value: "event_type" },
         { text: "Description", value: "description" },
         { text: "Dégâts", value: "degats", sortable: false },
         { text: "Document", value: "document", align: "center", sortable: false },
@@ -579,7 +582,7 @@ export default {
           { label: "Territoire/Ville", value: doc.location?.territoire_ville },
           { label: "Localité / Lieu précis", value: doc.location?.localite_village_lieuprecis },
           { label: "Date", value: doc.event?.date_event },
-          { label: "Type d'événement", value: doc.event?.event_type },
+          { label: "Type de CCOC", value: doc.event?.event_type },
           { label: "Description", value: doc.event?.description },
         ].filter((field) => !String(field.value || "").trim());
 

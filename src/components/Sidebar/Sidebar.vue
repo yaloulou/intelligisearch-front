@@ -12,7 +12,6 @@
   >
     <v-list>
       <template v-for="(item, i) in filteredItems">
-        <!-- Render list items based on the filteredItems -->
         <v-row v-if="item.heading" :key="item.heading" align="center">
           <v-col cols="6">
             <span
@@ -33,7 +32,7 @@
         <v-list-item
           color="primary"
           v-else
-          :key="item.text"
+          :key="item.title"
           :to="item.link === '#' ? '' : item.link"
           @click="item.action ? item.action() : null"
           link
@@ -61,36 +60,25 @@ export default {
   data() {
     return {
       items: [
-        { title: "Dashboard", icon: "mdi-view-dashboard", link: "/board" },
         {
-          title: "Note d'information",
-          icon: "mdi-file-document-outline", // More specific icon for information
+          title: "Enregistrer CCOC",
+          icon: "mdi-file-document-outline",
           link: "/dashboard",
         },
-        { title: "Recherche", icon: "mdi-magnify", link: "/search" },
+        { title: "Rechercher CCOC", icon: "mdi-magnify", link: "/search" },
         {
-          title: "IntelStack",
-          icon: "mdi-chart-bubble", // Suggests profiling and data analysis
+          title: "Entités",
+          icon: "mdi-chart-bubble",
           link: "/poldiplo",
         },
-        /* {
-          title: "Recherche profile",
-          icon: "mdi-account-search", // Clearly indicates profile search
-          link: "/searchpoldiplo",
-        }, */
         {
-          title: "Observations",
-          icon: "mdi-eye-outline", // Represents observation/monitoring
+          title: "Informations",
+          icon: "mdi-eye-outline",
           link: "/observations",
         },
-        /* {
-          title: "Carte diplomatique",
-          icon: "mdi-map-marker", // Represents a map or location
-          link: "/mapdiplo",
-        }, */
         {
-          title: "Événements",
-          icon: "mdi-calendar-clock", // Represents events/calendar
+          title: "Renseignements",
+          icon: "mdi-calendar-clock",
           link: "/extra/events",
         },
         {
@@ -127,7 +115,7 @@ export default {
     },
     filteredItems() {
       const role = this.userRole;
-      const officierHidden = ["Événements", "Relations", "IntelStack"];
+      const officierHidden = ["Renseignements", "Relations", "Entités"];
       return this.items.filter((item) => {
         if (item.adminOnly) return role === "admin";
         if (officierHidden.includes(item.title) && role === "officier") return false;

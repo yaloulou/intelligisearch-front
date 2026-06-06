@@ -2,12 +2,12 @@
   <v-container fluid class="pa-5">
     <v-row>
       <v-col cols="12">
-        <h2 class="mb-2">Gestion des Observations</h2>
+        <h2 class="mb-2">Gestion des Informations</h2>
         <v-alert type="info" text outlined class="mb-4">
-          <strong>Qu'est-ce qu'une observation ?</strong><br>
-          Une observation est un fait ou un événement constaté concernant une entité (personne, organisation, lieu) : 
+          <strong>Qu'est-ce qu'une information ?</strong><br>
+          Une information est un fait ou un événement constaté concernant une entité (personne, organisation, lieu) : 
           un déplacement, une rencontre, une communication, une transaction, une présence en un lieu, etc. 
-          Chaque observation doit être datée, sourcée et évaluée selon sa fiabilité et crédibilité.
+          Chaque information doit être datée, sourcée et évaluée selon sa fiabilité et crédibilité.
         </v-alert>
       </v-col>
     </v-row>
@@ -19,7 +19,7 @@
             <v-text-field
               v-model="search"
               append-icon="mdi-magnify"
-              label="Rechercher une observation"
+              label="Rechercher une information"
               single-line
               hide-details
               clearable
@@ -27,7 +27,7 @@
             <v-spacer></v-spacer>
             <v-btn color="primary" @click="openObservationDialog()">
               <v-icon left>mdi-plus</v-icon>
-              Nouvelle observation
+              Nouvelle information
             </v-btn>
           </v-card-title>
 
@@ -38,7 +38,7 @@
                 <v-select
                   v-model="filterType"
                   :items="obsTypes"
-                  label="Type d'observation"
+                  label="Type d'information"
                   clearable
                   dense
                   outlined
@@ -82,13 +82,13 @@
               </v-col>
             </v-row>
 
-            <!-- Liste des observations -->
+            <!-- Liste des informations -->
             <v-data-table
               :headers="headers"
               :items="observations"
               :search="search"
               :loading="loading"
-              loading-text="Chargement des observations..."
+              loading-text="Chargement des informations..."
               class="elevation-1"
               :items-per-page="10"
             >
@@ -138,11 +138,11 @@
       </v-col>
     </v-row>
 
-    <!-- Dialog pour ajouter/modifier une observation -->
+    <!-- Dialog pour ajouter/modifier une information -->
     <v-dialog v-model="observationDialog" max-width="900px" persistent scrollable>
       <v-card>
         <v-card-title>
-          <span class="headline">{{ editMode ? 'Modifier' : 'Nouvelle' }} Observation</span>
+          <span class="headline">{{ editMode ? 'Modifier' : 'Nouvelle' }} information</span>
           <v-spacer></v-spacer>
           <v-btn icon @click="closeObservationDialog">
             <v-icon>mdi-close</v-icon>
@@ -152,7 +152,7 @@
         <v-card-text style="max-height: 70vh;">
           <v-alert type="info" text dense class="mb-4">
             <v-icon small class="mr-2">mdi-information</v-icon>
-            <strong>Une observation</strong> est un fait documenté (qui, quoi, quand, où). 
+            <strong>Une information</strong> est un fait documenté (qui, quoi, quand, où). 
             Décrivez un événement concret, datez-le précisément et indiquez vos sources.
           </v-alert>
 
@@ -162,7 +162,7 @@
                 <v-select
                   v-model="currentObservation.obs_type"
                   :items="obsTypes"
-                  label="Type d'observation *"
+                  label="Type d'information *"
                   required
                   outlined
                   dense
@@ -171,7 +171,7 @@
               <v-col cols="12" md="6">
                 <v-text-field
                   v-model="currentObservation.time.observed_at"
-                  label="Date d'observation *"
+                  label="Date d'information *"
                   type="datetime-local"
                   required
                   outlined
@@ -184,7 +184,7 @@
               <v-col cols="12">
                 <v-textarea
                   v-model="currentObservation.summary"
-                  label="Résumé de l'observation *"
+                  label="Résumé de l'information *"
                   rows="3"
                   required
                   outlined
@@ -410,7 +410,7 @@
     <v-dialog v-model="viewDialog" max-width="700px">
       <v-card v-if="selectedObservation">
         <v-card-title>
-          <span class="headline">Détails de l'observation</span>
+          <span class="headline">Détails de l'information</span>
           <v-spacer></v-spacer>
           <v-btn icon @click="viewDialog = false">
             <v-icon>mdi-close</v-icon>
@@ -466,7 +466,7 @@
       <v-card>
         <v-card-title class="headline">Confirmer la suppression</v-card-title>
         <v-card-text>
-          Êtes-vous sûr de vouloir supprimer cette observation ?
+          Êtes-vous sûr de vouloir supprimer cette information ?
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
@@ -636,7 +636,7 @@ export default {
         }));
       } catch (e) {
         console.error("Erreur fetch observations:", e);
-        this.showSnackbar("Erreur lors du chargement des observations", "error");
+        this.showSnackbar("Erreur lors du chargement des informations", "error");
       } finally {
         this.loading = false;
       }
@@ -777,14 +777,14 @@ export default {
         }
 
         this.showSnackbar(
-          this.editMode ? "Observation modifiée avec succès" : "Observation ajoutée avec succès",
+          this.editMode ? "Information modifiée avec succès" : "Information ajoutée avec succès",
           "success"
         );
         this.closeObservationDialog();
         await this.fetchObservations();
       } catch (e) {
         console.error("Erreur lors de l'enregistrement:", e);
-        this.showSnackbar("Erreur lors de l'enregistrement de l'observation", "error");
+        this.showSnackbar("Erreur lors de l'enregistrement de l'information", "error");
       } finally {
         this.savingObservation = false;
       }
@@ -806,7 +806,7 @@ export default {
       try {
         await api.observations.delete(this.observationToDelete._id);
 
-        this.showSnackbar("Observation supprimée avec succès", "success");
+        this.showSnackbar("Information supprimée avec succès", "success");
         this.deleteDialog = false;
         this.observationToDelete = null;
         await this.fetchObservations();

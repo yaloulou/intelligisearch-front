@@ -463,7 +463,7 @@ router.beforeEach((to, from, next) => {
 
   // Already authenticated — skip login page
   if (to.path === "/login" && token) {
-    return next({ path: "/board" });
+    return next({ path: "/dashboard" });
   }
 
   // Public routes — allow

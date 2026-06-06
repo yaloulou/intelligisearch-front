@@ -4,9 +4,9 @@
     <!-- ══════════════ HERO HEADER ══════════════ -->
     <div class="hero-header">
       <div class="hero-content">
-        <h1 class="hero-title">Enregistrement de Renseignements Sécuritaires</h1>
+        <h1 class="hero-title">Enregistrer CCOC</h1>
         <p class="hero-subtitle">
-          Collectez et documentez les incidents de sécurité avec précision et rigueur
+          Collectez et documentez les CCOC avec précision et rigueur
         </p>
         <div class="hero-chips">
           <v-chip small dark color="rgba(255,255,255,0.15)" class="mr-2">Données confidentielles</v-chip>
@@ -19,7 +19,7 @@
     <div class="steps-bar">
       <div class="step-item"><span>Géographie</span></div>
       <div class="step-separator"></div>
-      <div class="step-item"><span>Incident</span></div>
+      <div class="step-item"><span>CCOC</span></div>
       <div class="step-separator"></div>
       <div class="step-item"><span>Acteurs</span></div>
       <div class="step-separator"></div>
@@ -104,7 +104,7 @@
                   dense
                   :rules="[rules.required]"
                   prepend-inner-icon="mdi-pin"
-                  placeholder="Décrivez le lieu exact de l'incident"
+                  placeholder="Décrivez le lieu exact du CCOC"
                   color="blue darken-3"
                 ></v-text-field>
               </v-col>
@@ -152,12 +152,12 @@
           </div>
         </div>
 
-        <!-- ── Section 2 : Détails de l'Incident ── -->
+        <!-- ── Section 2 : Détails du CCOC ── -->
         <div class="section-card section-incident">
           <div class="section-head">
             <div>
               <span class="section-number">02</span>
-              <h2 class="section-title">Détails de l'Incident</h2>
+              <h2 class="section-title">Détails du CCOC</h2>
             </div>
           </div>
 
@@ -176,7 +176,7 @@
                   <template v-slot:activator="{ on, attrs }">
                     <v-text-field
                       v-model="form.date_event"
-                      label="Date de l'Incident"
+                      label="Date du CCOC"
                       readonly
                       v-bind="attrs"
                       v-on="on"
@@ -238,7 +238,7 @@
               <v-col cols="12">
                 <v-text-field
                   v-model="form.categorie"
-                  label="Catégorie de l'Incident"
+                  label="Catégorie du CCOC"
                   outlined
                   dense
                   prepend-inner-icon="mdi-tag-multiple"
@@ -250,14 +250,14 @@
 
             <v-textarea
               v-model="form.description"
-              label="Description Détaillée de l'Incident"
+              label="Description détaillée du CCOC"
               outlined
               rows="5"
               :rules="[rules.required]"
               counter
               maxlength="2000"
               prepend-inner-icon="mdi-text-box-edit"
-              placeholder="Décrivez l'incident avec précision : circonstances, déroulement, contexte..."
+              placeholder="Décrivez le CCOC avec précision : circonstances, déroulement, contexte..."
               color="deep-orange darken-1"
             ></v-textarea>
           </div>
@@ -569,7 +569,7 @@
         </v-card-text>
         <v-card-actions class="pb-6 px-6 justify-center">
           <v-btn outlined color="success" class="mr-3" @click="closeSuccessDialog">Fermer</v-btn>
-          <v-btn depressed color="success" dark @click="submitAnotherForm">Nouvel incident</v-btn>
+          <v-btn depressed color="success" dark @click="submitAnotherForm">Nouveau CCOC</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>

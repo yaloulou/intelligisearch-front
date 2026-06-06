@@ -21,7 +21,7 @@
                 <v-select
                   v-model="selectedEventType"
                   :items="eventTypes"
-                  label="Type d'événement"
+                  label="Type de renseignement"
                   outlined
                   dense
                   clearable
@@ -45,15 +45,15 @@
       </v-col>
     </v-row>
 
-    <!-- Events Table -->
+    <!-- Renseignements Table -->
     <v-row>
       <v-col cols="12">
         <v-card>
           <v-card-title>
-            <h3>Événements (events_v1)</h3>
+            <h3>Renseignements</h3>
             <v-spacer></v-spacer>
             <v-btn color="primary" v-if="canCreate('event')" @click="openAddDialog">
-              Nouvel événement
+              Nouveau renseignement
             </v-btn>
           </v-card-title>
           <v-card-text>
@@ -63,7 +63,7 @@
               item-key="event_id"
               class="elevation-1"
               :loading="loading"
-              loading-text="Chargement des événements..."
+              loading-text="Chargement des renseignements..."
               @click:row="selectEvent"
             >
               <template v-slot:item.event_type="{ item }">
@@ -107,7 +107,7 @@
       </v-col>
     </v-row>
 
-    <!-- Event Details Dialog -->
+    <!-- Renseignement Details Dialog -->
     <v-dialog v-model="detailsDialog" max-width="1000px">
       <v-card v-if="selectedEventData">
         <v-card-title>
@@ -397,11 +397,11 @@
       {{ snackbar.message }}
     </v-snackbar>
 
-    <!-- Add/Edit Event Dialog -->
+    <!-- Add/Edit Renseignement Dialog -->
     <v-dialog v-model="addEventDialog" max-width="800px" scrollable>
       <v-card>
         <v-card-title>
-          <h3>{{ editingEvent ? 'Modifier' : 'Créer' }} un événement</h3>
+          <h3>{{ editingEvent ? 'Modifier' : 'Créer' }} un renseignement</h3>
           <v-spacer></v-spacer>
           <v-btn icon @click="addEventDialog = false">×</v-btn>
         </v-card-title>
@@ -428,7 +428,7 @@
             <v-select
               v-model="formEvent.event_type"
               :items="eventTypes"
-              label="Type d'événement"
+              label="Type de renseignement"
               outlined
               dense
               class="mb-4"
@@ -876,7 +876,7 @@ export default {
         }));
       } catch (e) {
         console.error("Erreur fetch events:", e);
-        this.showSnackbar('Erreur lors du chargement des événements', 'error');
+        this.showSnackbar('Erreur lors du chargement des renseignements', 'error');
       } finally {
         this.loading = false;
       }
@@ -1022,7 +1022,7 @@ export default {
       this.selectedEntities.splice(index, 1);
     },
     async deleteEvent(event) {
-      if (!confirm('Êtes-vous sûr de vouloir supprimer cet événement ?')) return;
+      if (!confirm('Êtes-vous sûr de vouloir supprimer ce renseignement ?')) return;
 
       try {
         await api.events.delete(event._id);
@@ -1103,7 +1103,7 @@ export default {
           await api.events.create(eventToSave);
         }
 
-        const successMessage = this.editingEvent ? "Événement modifié avec succès" : "Événement créé avec succès";
+        const successMessage = this.editingEvent ? "Renseignement modifié avec succès" : "Renseignement créé avec succès";
         this.showSnackbar(successMessage, 'success');
         this.addEventDialog = false;
         this.selectedEntities = [];

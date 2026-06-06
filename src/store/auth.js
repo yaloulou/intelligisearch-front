@@ -79,7 +79,7 @@ export default {
         axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
         await dispatch("fetchMe");
         commit("LOGIN_SUCCESS");
-        const redirect = router.currentRoute.query?.redirect || "/board";
+        const redirect = router.currentRoute.query?.redirect || "/dashboard";
         router.push(redirect).catch(() => {});
       } catch (err) {
         const msg =
@@ -127,7 +127,7 @@ export default {
       }
     },
     receiveLogin() {
-      router.push("/board").catch(() => {});
+      router.push("/dashboard").catch(() => {});
     },
   },
 };
