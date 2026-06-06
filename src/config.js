@@ -1,4 +1,4 @@
-const hostApi = process.env.VUE_APP_API_HOST || "http://localhost";
+const hostApi = process.env.VUE_APP_API_HOST || "http://192.168.15.8";
 const portApi = process.env.VUE_APP_API_PORT || 3000;
 const baseURLApi = `${hostApi}${portApi ? `:${portApi}` : ``}/api`;
 const redirectUrl =
