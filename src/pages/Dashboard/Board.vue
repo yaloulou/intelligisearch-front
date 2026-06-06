@@ -172,8 +172,7 @@ import axios from "axios";
 import VueApexCharts from "vue-apexcharts";
 import config from "@/config";
 
-// Points vers le middleware NestJS (ex: http://localhost:3000)
-const API_BASE = config.API_BASE || "http://localhost:3000";
+const API_BASE = config.API_BASE;
 
 export default {
   components: { apexchart: VueApexCharts },

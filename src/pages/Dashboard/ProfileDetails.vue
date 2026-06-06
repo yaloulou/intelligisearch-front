@@ -97,6 +97,7 @@
 
 <script>
 import api from "@/services/api";
+import config from "@/config";
 
 export default {
   data() {
@@ -116,7 +117,7 @@ export default {
 
       // Si tu stockes un file_path local vers un serveur de fichiers :
       // ex: /uploads/entities/abc.jpg => adapte le prefix
-      if (first?.file_path) return `http://localhost:5000/uploads/${first.file_path}`;
+      if (first?.file_path) return `${config.UPLOADS_BASE}/${first.file_path}`;
       return null;
     },
   },

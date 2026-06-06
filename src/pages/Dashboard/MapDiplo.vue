@@ -17,7 +17,7 @@
             </p>
             <img
               v-if="city.photo_url"
-              :src="`http://localhost:5000/uploads/${city.photo_url}`"
+              :src="`${uploadsBase}/${city.photo_url}`"
               alt="Ambassador photo"
               style="
                 width: 100px;
@@ -45,6 +45,7 @@
 <script>
 import { LMap, LTileLayer, LMarker, LPopup } from "vue2-leaflet";
 import L from "leaflet";
+import config from "@/config";
 import "leaflet/dist/leaflet.css"; // Import Leaflet CSS
 
 // Fix for default Leaflet marker icon issues
@@ -67,6 +68,7 @@ export default {
       zoom: 2,
       center: [20, 0], // Center of the map for a global view
       url: "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+      uploadsBase: config.UPLOADS_BASE,
       worldCities: [
         {
           name: "Washington, USA",

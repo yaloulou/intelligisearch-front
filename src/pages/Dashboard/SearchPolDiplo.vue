@@ -210,7 +210,7 @@
                 <v-avatar size="150">
                   <v-img
                     v-if="editActor.photo_url"
-                    :src="`http://localhost:5000/uploads/${editActor.photo_url}`"
+                    :src="`${uploadsBase}/${editActor.photo_url}`"
                     alt="Photo de profil"
                   />
                   <v-icon v-else size="150" color="grey">mdi-account</v-icon>
@@ -458,6 +458,7 @@
 <script>
 import axios from "axios";
 import api from "@/services/api";
+import config from "@/config";
 
 export default {
   data() {
@@ -495,6 +496,7 @@ export default {
       ],
       roleOptions: ["député", "ministre", "sénateur", "conseiller"],
       hostiliteOptions: ["0", "1", "2", "3"],
+      uploadsBase: config.UPLOADS_BASE,
     };
   },
   methods: {
@@ -634,7 +636,7 @@ export default {
           formData.append("photo", this.newPhoto);
 
           const uploadResponse = await axios.post(
-            "http://localhost:5000/upload",
+            `${config.UPLOAD_BASE}/upload`,
             formData,
             {
               headers: { "Content-Type": "multipart/form-data" },

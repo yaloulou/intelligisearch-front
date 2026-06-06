@@ -1,7 +1,8 @@
 import axios from "axios";
 import router from "../Routes";
+import config from "@/config";
 
-const API_BASE = process.env.VUE_APP_API_BASE || "http://localhost:3000";
+const API_BASE = config.API_BASE;
 
 export default {
   namespaced: true,

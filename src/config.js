@@ -1,19 +1,18 @@
-const hostApi =
-  process.env.NODE_ENV === "development"
-    ? "http://localhost"
-    : "https://sing-generator-node.herokuapp.com";
-const portApi = process.env.NODE_ENV === "development" ? 8080 : "";
+const hostApi = process.env.VUE_APP_API_HOST || "http://192.168.15.8";
+const portApi = process.env.VUE_APP_API_PORT || 3000;
 const baseURLApi = `${hostApi}${portApi ? `:${portApi}` : ``}/api`;
 const redirectUrl =
   process.env.NODE_ENV === "development"
-    ? "http://localhost:3000/vue-material"
+    ? "http://localhost:8080/vue-material"
     : "https://demo.flatlogic.com/vue-material";
 
 // URL unique pour la base de données Elasticsearch (legacy, ne plus utiliser dans les composants)
 const URL_BASE = process.env.VUE_APP_ELASTICSEARCH_URL || "http://192.168.15.8:9200";
 
 // URL du backend NestJS intermédiaire
-const API_BASE ="http://localhost:3000";
+const API_BASE = process.env.VUE_APP_API_BASE || `${hostApi}${portApi ? `:${portApi}` : ``}`;
+const UPLOAD_BASE = process.env.VUE_APP_UPLOAD_BASE || API_BASE;
+const UPLOADS_BASE = `${UPLOAD_BASE}/uploads`;
 
 export default {
   light: {
@@ -53,6 +52,8 @@ export default {
   redirectUrl,
   URL_BASE,
   API_BASE,
+  UPLOAD_BASE,
+  UPLOADS_BASE,
   isBackend: process.env.VUE_APP_BACKEND,
   remote: "https://sing-generator-node.herokuapp.com",
   auth: {
