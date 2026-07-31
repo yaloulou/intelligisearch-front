@@ -53,21 +53,21 @@
                 <v-row>
                   <v-col cols="12" sm="3">
                     <strong>Nombre de morts :</strong>
-                    {{ incident.degats_humains?.morts || "Non défini" }}
+                    {{ totalMorts(incident.degats_humains) }}
                   </v-col>
                   <v-col cols="12" sm="3">
                     <strong>Nombre de blessés :</strong>
-                    {{ incident.degats_humains?.blesses || "Non défini" }}
+                    {{ totalBlesses(incident.degats_humains) }}
                   </v-col>
                   <v-col cols="12" sm="3">
                     <strong>Nombre de disparus :</strong>
                     {{
-                      incident.degats_humains?.enleves_disparus || "Non défini"
+                      displayNumber(incident.degats_humains?.enleves_disparus)
                     }}
                   </v-col>
                   <v-col cols="12" sm="3">
                     <strong>Nombre d'expulsés :</strong>
-                    {{ incident.degats_humains?.expulses || "Non défini" }}
+                    {{ displayNumber(incident.degats_humains?.expulses) }}
                   </v-col>
                 </v-row>
               </v-card-text>
@@ -83,20 +83,19 @@
                   <v-col cols="12" sm="4">
                     <strong>Infrastructures endommagées :</strong>
                     {{
-                      incident.degats_materiels?.degat_infrastructures ||
-                      "Non défini"
+                      displayNumber(incident.degats_materiels?.degat_infrastructures)
                     }}
                   </v-col>
                   <v-col cols="12" sm="4">
                     <strong>Véhicules endommagés :</strong>
                     {{
-                      incident.degats_materiels?.degat_vehicules || "Non défini"
+                      displayNumber(incident.degats_materiels?.degat_vehicules)
                     }}
                   </v-col>
                   <v-col cols="12" sm="4">
                     <strong>Bâtiments endommagés :</strong>
                     {{
-                      incident.degats_materiels?.degat_batiments || "Non défini"
+                      displayNumber(incident.degats_materiels?.degat_batiments)
                     }}
                   </v-col>
                   <v-col cols="12">
@@ -158,6 +157,33 @@ export default {
       if (!date) return "Non défini";
       const options = { year: "numeric", month: "long", day: "numeric" };
       return new Date(date).toLocaleDateString(undefined, options);
+    },
+    safeInt(value) {
+      const parsed = parseInt(value, 10);
+      return Number.isFinite(parsed) ? parsed : 0;
+    },
+    displayNumber(value) {
+      return value === null || value === undefined || value === ""
+        ? "Non défini"
+        : this.safeInt(value);
+    },
+    totalMorts(degats = {}) {
+      const hasDetailed = ["morts_civils", "morts_allies", "morts_ennemis"].some(
+        (key) => degats && degats[key] !== null && degats[key] !== undefined && degats[key] !== ""
+      );
+      if (!hasDetailed && degats?.morts !== undefined) return this.safeInt(degats.morts);
+      return this.safeInt(degats?.morts_civils) +
+        this.safeInt(degats?.morts_allies) +
+        this.safeInt(degats?.morts_ennemis);
+    },
+    totalBlesses(degats = {}) {
+      const hasDetailed = ["blesses_civils", "blesses_allies", "blesses_ennemis"].some(
+        (key) => degats && degats[key] !== null && degats[key] !== undefined && degats[key] !== ""
+      );
+      if (!hasDetailed && degats?.blesses !== undefined) return this.safeInt(degats.blesses);
+      return this.safeInt(degats?.blesses_civils) +
+        this.safeInt(degats?.blesses_allies) +
+        this.safeInt(degats?.blesses_ennemis);
     },
     validateIncident(isValid) {
       // Placeholder function for validation action

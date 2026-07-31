@@ -24,9 +24,12 @@
                   label="Rechercher"
                   outlined
                   dense
+                  clearable
+                  @click:append="performSearch"
+                  @keyup.enter="performSearch"
                 ></v-text-field>
               </v-col>
-              <v-col cols="12" md="3">
+              <v-col cols="12" md="2">
                 <v-select
                   v-model="selectedLinkType"
                   :items="linkTypes"
@@ -34,7 +37,7 @@
                   outlined
                   dense
                   clearable
-                  @change="fetchLinks"
+                  @change="fetchLinks()"
                 ></v-select>
               </v-col>
               <v-col cols="12" md="3">
@@ -50,7 +53,7 @@
                   dense
                   clearable
                   no-filter
-                  @change="fetchLinks"
+                  @change="fetchLinks()"
                 ></v-autocomplete>
               </v-col>
               <v-col cols="12" md="3">
@@ -66,8 +69,19 @@
                   dense
                   clearable
                   no-filter
-                  @change="fetchLinks"
+                  @change="fetchLinks()"
                 ></v-autocomplete>
+              </v-col>
+              <v-col cols="12" md="1" class="d-flex align-start">
+                <v-btn
+                  color="primary"
+                  depressed
+                  block
+                  :loading="loading"
+                  @click="performSearch"
+                >
+                  <v-icon small>mdi-magnify</v-icon>
+                </v-btn>
               </v-col>
             </v-row>
           </v-card-text>
@@ -126,84 +140,132 @@
               </template>
             </v-data-table>
 
-            <v-divider class="my-6"></v-divider>
-            <h4 class="mb-2">Graphe relationnel des entités</h4>
-            <div class="d-flex flex-wrap mb-3">
-              <v-chip x-small outlined color="primary" class="mr-2 mb-1">
-                {{ graphData.nodes.length }} / {{ graphData.totalNodes }} entités affichées
-              </v-chip>
-              <v-chip x-small outlined color="info" class="mr-2 mb-1">
-                {{ graphData.edges.length }} / {{ graphData.totalEdges }} relations affichées
-              </v-chip>
-            </div>
+            <template v-if="graphSearchPerformed">
+              <v-divider class="my-6"></v-divider>
+              <div class="graph-heading mb-3">
+                <div>
+                  <div class="text-overline primary--text font-weight-bold">Cartographie</div>
+                  <h4 class="mb-0">Graphe relationnel des entités</h4>
+                </div>
+                <div class="d-flex flex-wrap justify-end">
+                  <v-chip small outlined color="primary" class="mr-2 mb-1">
+                    {{ graphData.nodes.length }} / {{ graphData.totalNodes }} entités
+                  </v-chip>
+                  <v-chip small outlined color="info" class="mr-2 mb-1">
+                    {{ graphData.edges.length }} / {{ graphData.totalEdges }} relations
+                  </v-chip>
+                </div>
+              </div>
 
-            <v-sheet v-if="graphData.nodes.length" outlined class="pa-2 graph-container">
-              <svg
-                class="relation-graph"
-                viewBox="0 0 1000 520"
-                role="img"
-                aria-label="Graphe des relations entre entités"
-              >
-                <g>
-                  <g
-                    v-for="edge in graphData.edges"
-                    :key="edge.id"
-                    class="graph-edge-group"
-                  >
-                    <line
-                      class="graph-edge"
-                      :x1="edge.source.x"
-                      :y1="edge.source.y"
-                      :x2="edge.target.x"
-                      :y2="edge.target.y"
-                      :stroke="edge.color"
-                      :stroke-width="edge.width"
-                      stroke-linecap="round"
+              <v-sheet v-if="graphData.nodes.length" class="graph-container">
+                <svg
+                  class="relation-graph"
+                  viewBox="0 0 1000 560"
+                  role="img"
+                  aria-label="Graphe des relations entre entités"
+                >
+                  <defs>
+                    <radialGradient id="graphBackground" cx="50%" cy="45%" r="72%">
+                      <stop offset="0%" stop-color="#ffffff" />
+                      <stop offset="68%" stop-color="#f5f8fb" />
+                      <stop offset="100%" stop-color="#e9eef5" />
+                    </radialGradient>
+                    <filter id="nodeShadow" x="-40%" y="-40%" width="180%" height="180%">
+                      <feDropShadow dx="0" dy="8" stdDeviation="8" flood-color="#1a2744" flood-opacity="0.16" />
+                    </filter>
+                    <marker
+                      id="graphArrow"
+                      markerWidth="10"
+                      markerHeight="10"
+                      refX="8"
+                      refY="5"
+                      orient="auto"
+                      markerUnits="strokeWidth"
                     >
-                      <title>{{ edge.label }}</title>
-                    </line>
-                    <text
-                      class="graph-edge-note"
-                      :x="edge.midX"
-                      :y="edge.midY - 6"
-                      text-anchor="middle"
-                    >
-                      {{ edge.noteShort }}
-                    </text>
+                      <path d="M 0 0 L 10 5 L 0 10 z" class="graph-arrow" />
+                    </marker>
+                  </defs>
+
+                  <rect width="1000" height="560" rx="18" fill="url(#graphBackground)" />
+                  <g class="graph-grid">
+                    <circle cx="500" cy="280" r="118" />
+                    <circle cx="500" cy="280" r="218" />
+                    <circle cx="500" cy="280" r="286" />
                   </g>
-                </g>
 
-                <g>
-                  <g
-                    v-for="node in graphData.nodes"
-                    :key="node.id"
-                    class="graph-node"
-                  >
-                    <circle
-                      :cx="node.x"
-                      :cy="node.y"
-                      :r="node.radius"
-                      :fill="node.color"
-                      fill-opacity="0.92"
+                  <g>
+                    <g
+                      v-for="edge in graphData.edges"
+                      :key="edge.id"
+                      class="graph-edge-group"
                     >
-                      <title>{{ node.labelFull }} • {{ node.degree }} relation(s)</title>
-                    </circle>
-                    <text
-                      :x="node.x"
-                      :y="node.y + node.radius + 14"
-                      text-anchor="middle"
-                      class="graph-node-label"
-                    >
-                      {{ node.label }}
-                    </text>
+                      <path
+                        class="graph-edge"
+                        :d="edge.path"
+                        :stroke="edge.color"
+                        :stroke-width="edge.width"
+                        marker-end="url(#graphArrow)"
+                      >
+                        <title>{{ edge.label }}</title>
+                      </path>
+                      <text
+                        class="graph-edge-note"
+                        :x="edge.midX"
+                        :y="edge.midY - 8"
+                        text-anchor="middle"
+                      >
+                        {{ edge.noteShort }}
+                      </text>
+                    </g>
                   </g>
-                </g>
-              </svg>
-            </v-sheet>
 
-            <div v-else class="text-center grey--text py-4">
-              Pas assez de relations pour afficher le graphe.
-            </div>
+                  <g>
+                    <g
+                      v-for="node in graphData.nodes"
+                      :key="node.id"
+                      class="graph-node"
+                    >
+                      <circle
+                        class="graph-node-halo"
+                        :cx="node.x"
+                        :cy="node.y"
+                        :r="node.radius + 9"
+                        :fill="node.color"
+                      />
+                      <circle
+                        :cx="node.x"
+                        :cy="node.y"
+                        :r="node.radius"
+                        :fill="node.color"
+                        filter="url(#nodeShadow)"
+                      >
+                        <title>{{ node.labelFull }} • {{ node.degree }} relation(s)</title>
+                      </circle>
+                      <text
+                        :x="node.x"
+                        :y="node.y + 4"
+                        text-anchor="middle"
+                        class="graph-node-degree"
+                      >
+                        {{ node.degree }}
+                      </text>
+                      <text
+                        :x="node.x"
+                        :y="node.labelY"
+                        text-anchor="middle"
+                        class="graph-node-label"
+                      >
+                        {{ node.label }}
+                      </text>
+                    </g>
+                  </g>
+                </svg>
+              </v-sheet>
+
+              <div v-else class="graph-empty">
+                Pas assez de relations pour afficher le graphe.
+              </div>
+            </template>
           </v-card-text>
         </v-card>
       </v-col>
@@ -681,6 +743,7 @@ export default {
       selectedLinkType: null,
       selectedFromEntity: null,
       selectedToEntity: null,
+      graphSearchPerformed: false,
       detailsDialog: false,
       addLinkDialog: false,
       detailsTab: 0,
@@ -783,12 +846,12 @@ export default {
       const selectedSet = new Set(selectedIds);
 
       const width = 1000;
-      const height = 520;
+      const height = 560;
       const centerX = width / 2;
       const centerY = height / 2;
-      const innerRadius = 130;
-      const outerRadius = 220;
-      const innerCount = Math.min(8, selectedIds.length);
+      const innerRadius = 118;
+      const outerRadius = 218;
+      const innerCount = Math.min(7, selectedIds.length);
       const maxDegree = Math.max(...selectedIds.map((id) => degree[id] || 1), 1);
 
       const nodes = selectedIds.map((id, index) => {
@@ -812,6 +875,7 @@ export default {
           color: this.getGraphNodeColor(nodeDegree, maxDegree),
           labelFull,
           label: this.truncateGraphLabel(labelFull, 18),
+          labelY: y < centerY ? y - Math.min(34, 20 + Math.sqrt(nodeDegree) * 2.2) : y + Math.min(38, 24 + Math.sqrt(nodeDegree) * 2.2),
         };
       });
 
@@ -832,13 +896,20 @@ export default {
           const note = (link.notes || '').toString().trim() || 'Aucune note';
           const fromName = this.getEntityName(link.from_entity);
           const toName = this.getEntityName(link.to_entity);
+          const dx = target.x - source.x;
+          const dy = target.y - source.y;
+          const distance = Math.sqrt(dx * dx + dy * dy) || 1;
+          const curve = Math.min(72, Math.max(24, distance * 0.13)) * (index % 2 === 0 ? 1 : -1);
+          const controlX = (source.x + target.x) / 2 - (dy / distance) * curve;
+          const controlY = (source.y + target.y) / 2 + (dx / distance) * curve;
 
           return {
             id: `${link.link_id || 'edge'}-${index}`,
             source,
             target,
-            midX: (source.x + target.x) / 2,
-            midY: (source.y + target.y) / 2,
+            midX: controlX,
+            midY: controlY,
+            path: `M ${source.x} ${source.y} Q ${controlX} ${controlY} ${target.x} ${target.y}`,
             color: this.getGraphLinkColor(link.link_type),
             width: this.getGraphLinkWidth(link.evaluation?.confidence),
             note,
@@ -934,6 +1005,10 @@ export default {
     },
     getEntityName(entityId) {
       return this.entityCache[entityId] || entityId;
+    },
+    async performSearch() {
+      this.graphSearchPerformed = true;
+      await this.fetchLinks();
     },
     async hydrateEntityNamesFromLinks(links) {
       const idsSet = new Set();
@@ -1181,29 +1256,61 @@ export default {
     margin: 2px;
   }
 
+  .graph-heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+
   .graph-container {
     overflow: hidden;
+    border: 1px solid #dce4ee;
+    border-radius: 8px;
+    background: #f7f9fc;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.75);
   }
 
   .relation-graph {
     width: 100%;
-    height: 520px;
+    height: 560px;
     display: block;
   }
 
+  .graph-grid circle {
+    fill: none;
+    stroke: #c9d4e2;
+    stroke-dasharray: 4 10;
+    stroke-width: 1;
+    opacity: 0.55;
+  }
+
   .graph-edge {
-    opacity: 0.45;
-    transition: opacity 0.15s ease;
+    fill: none;
+    opacity: 0.42;
+    stroke-linecap: round;
+    stroke-linejoin: round;
+    transition: opacity 0.15s ease, stroke-width 0.15s ease;
+  }
+
+  .graph-arrow {
+    fill: #6f7f91;
+    opacity: 0.7;
   }
 
   .graph-edge-group:hover .graph-edge {
     opacity: 0.95;
+    stroke-width: 3.4;
   }
 
   .graph-edge-note {
     font-size: 10px;
-    font-weight: 500;
-    fill: var(--v-secondary-base);
+    font-weight: 700;
+    fill: #263647;
+    paint-order: stroke;
+    stroke: rgba(255, 255, 255, 0.9);
+    stroke-width: 4px;
     opacity: 0;
     transition: opacity 0.15s ease;
     pointer-events: none;
@@ -1213,11 +1320,44 @@ export default {
     opacity: 1;
   }
 
+  .graph-node {
+    cursor: default;
+  }
+
+  .graph-node-halo {
+    opacity: 0.14;
+    transition: opacity 0.15s ease, r 0.15s ease;
+  }
+
+  .graph-node:hover .graph-node-halo {
+    opacity: 0.28;
+  }
+
+  .graph-node-degree {
+    font-size: 12px;
+    font-weight: 800;
+    fill: #ffffff;
+    pointer-events: none;
+  }
+
   .graph-node-label {
     font-size: 11px;
-    font-weight: 500;
-    fill: var(--v-secondary-base);
+    font-weight: 700;
+    fill: #263647;
+    paint-order: stroke;
+    stroke: rgba(255, 255, 255, 0.9);
+    stroke-width: 4px;
     pointer-events: none;
+  }
+
+  .graph-empty {
+    border: 1px dashed #c8d2df;
+    border-radius: 8px;
+    background: #f7f9fc;
+    color: #6f7f91;
+    font-weight: 600;
+    padding: 28px 16px;
+    text-align: center;
   }
 }
 </style>

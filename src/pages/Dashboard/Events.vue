@@ -260,7 +260,7 @@
                     <v-card flat class="impact-card error-light">
                       <v-card-text class="text-center">
                         <h4>Morts</h4>
-                        <h3 class="error--text">{{ selectedEventData.impact.morts || 0 }}</h3>
+                        <h3 class="error--text">{{ impactValue(selectedEventData, 'morts') }}</h3>
                       </v-card-text>
                     </v-card>
                   </v-col>
@@ -268,7 +268,7 @@
                     <v-card flat class="impact-card warning-light">
                       <v-card-text class="text-center">
                         <h4>Blessés</h4>
-                        <h3 class="warning--text">{{ selectedEventData.impact.blesses || 0 }}</h3>
+                        <h3 class="warning--text">{{ impactValue(selectedEventData, 'blesses') }}</h3>
                       </v-card-text>
                     </v-card>
                   </v-col>
@@ -276,7 +276,7 @@
                     <v-card flat class="impact-card info-light">
                       <v-card-text class="text-center">
                         <h4>Enlevés/Disparus</h4>
-                        <h3 class="info--text">{{ selectedEventData.impact.enleves_disparus || 0 }}</h3>
+                        <h3 class="info--text">{{ impactValue(selectedEventData, 'enleves_disparus') }}</h3>
                       </v-card-text>
                     </v-card>
                   </v-col>
@@ -284,7 +284,7 @@
                     <v-card flat class="impact-card secondary-light">
                       <v-card-text class="text-center">
                         <h4>Expulsés</h4>
-                        <h3 class="secondary--text">{{ selectedEventData.impact.expulses || 0 }}</h3>
+                        <h3 class="secondary--text">{{ impactValue(selectedEventData, 'expulses') }}</h3>
                       </v-card-text>
                     </v-card>
                   </v-col>
@@ -299,7 +299,7 @@
                       <v-list-item-content>
                         <v-list-item-title>Véhicules</v-list-item-title>
                         <v-list-item-subtitle class="font-weight-bold text-h6">
-                          {{ selectedEventData.impact.degat_vehicules || 0 }}
+                          {{ impactValue(selectedEventData, 'degat_vehicules') }}
                         </v-list-item-subtitle>
                       </v-list-item-content>
                     </v-list-item>
@@ -309,7 +309,7 @@
                       <v-list-item-content>
                         <v-list-item-title>Bâtiments</v-list-item-title>
                         <v-list-item-subtitle class="font-weight-bold text-h6">
-                          {{ selectedEventData.impact.degat_batiments || 0 }}
+                          {{ impactValue(selectedEventData, 'degat_batiments') }}
                         </v-list-item-subtitle>
                       </v-list-item-content>
                     </v-list-item>
@@ -319,17 +319,17 @@
                       <v-list-item-content>
                         <v-list-item-title>Infrastructures</v-list-item-title>
                         <v-list-item-subtitle class="font-weight-bold text-h6">
-                          {{ selectedEventData.impact.degat_infrastructures || 0 }}
+                          {{ impactValue(selectedEventData, 'degat_infrastructures') }}
                         </v-list-item-subtitle>
                       </v-list-item-content>
                     </v-list-item>
                   </v-col>
                 </v-row>
 
-                <v-row v-if="selectedEventData.impact.autres_degats" class="mt-4">
+                <v-row v-if="impactText(selectedEventData, 'autres_degats')" class="mt-4">
                   <v-col cols="12">
                     <v-alert type="info" outlined>
-                      <strong>Autres dégâts:</strong> {{ selectedEventData.impact.autres_degats }}
+                      <strong>Autres dégâts:</strong> {{ impactText(selectedEventData, 'autres_degats') }}
                     </v-alert>
                   </v-col>
                 </v-row>
@@ -873,6 +873,7 @@ export default {
         this.events = (res.data?.items || []).map((item) => ({
           ...item,
           _id: item._id || item.id,
+          impact: this.normalizeImpact(item),
         }));
       } catch (e) {
         console.error("Erreur fetch events:", e);
@@ -897,19 +898,61 @@ export default {
       };
       return colors[eventType] || 'grey';
     },
+    safeInt(value) {
+      const parsed = parseInt(value, 10);
+      return Number.isFinite(parsed) ? parsed : 0;
+    },
+    firstImpactNumber(...values) {
+      const presentValues = values.filter((value) => value !== null && value !== undefined && value !== "");
+      const positive = presentValues.map((value) => this.safeInt(value)).find((value) => value > 0);
+      return positive !== undefined ? positive : this.safeInt(presentValues[0]);
+    },
+    normalizeImpact(event = {}) {
+      const impact = event.impact || {};
+      const degatsHumains = event.degats_humains || {};
+      const degatsMateriels = event.degats_materiels || {};
+      const detailedMorts = this.safeInt(degatsHumains.morts_civils) +
+        this.safeInt(degatsHumains.morts_allies) +
+        this.safeInt(degatsHumains.morts_ennemis);
+      const detailedBlesses = this.safeInt(degatsHumains.blesses_civils) +
+        this.safeInt(degatsHumains.blesses_allies) +
+        this.safeInt(degatsHumains.blesses_ennemis);
+
+      return {
+        morts: this.firstImpactNumber(impact.morts, degatsHumains.morts, detailedMorts),
+        blesses: this.firstImpactNumber(impact.blesses, degatsHumains.blesses, detailedBlesses),
+        enleves_disparus: this.firstImpactNumber(impact.enleves_disparus, degatsHumains.enleves_disparus),
+        expulses: this.firstImpactNumber(impact.expulses, degatsHumains.expulses),
+        degat_vehicules: this.firstImpactNumber(impact.degat_vehicules, degatsMateriels.degat_vehicules),
+        degat_batiments: this.firstImpactNumber(impact.degat_batiments, degatsMateriels.degat_batiments),
+        degat_infrastructures: this.firstImpactNumber(impact.degat_infrastructures, degatsMateriels.degat_infrastructures),
+        autres_degats: impact.autres_degats || degatsMateriels.autres_degats || '',
+      };
+    },
+    impactValue(event, key) {
+      return this.safeInt(this.normalizeImpact(event)[key]);
+    },
+    impactText(event, key) {
+      return this.normalizeImpact(event)[key] || '';
+    },
     hasImpact(event) {
-      const imp = event.impact;
+      const imp = this.normalizeImpact(event);
       return imp.morts > 0 || imp.blesses > 0 || imp.enleves_disparus > 0 ||
              imp.expulses > 0 || imp.degat_vehicules > 0 || imp.degat_batiments > 0 ||
              imp.degat_infrastructures > 0;
     },
     async selectEvent(event) {
-      this.selectedEventData = JSON.parse(JSON.stringify(event));
+      const copy = JSON.parse(JSON.stringify(event));
+      this.selectedEventData = {
+        ...copy,
+        impact: this.normalizeImpact(copy),
+        participants: Array.isArray(copy.participants) ? copy.participants : [],
+      };
       await this.enrichParticipants();
       this.detailsDialog = true;
     },
     async enrichParticipants() {
-      if (!this.selectedEventData || !this.selectedEventData.participants.length) {
+      if (!this.selectedEventData || !Array.isArray(this.selectedEventData.participants) || !this.selectedEventData.participants.length) {
         this.participantsEnriched = [];
         return;
       }
@@ -975,7 +1018,12 @@ export default {
     },
     editEvent(event) {
       this.editingEvent = event;
-      this.formEvent = JSON.parse(JSON.stringify(event));
+      const copy = JSON.parse(JSON.stringify(event));
+      this.formEvent = {
+        ...copy,
+        impact: this.normalizeImpact(copy),
+        participants: Array.isArray(copy.participants) ? copy.participants : [],
+      };
       this.selectedEntities = event.participants?.map(p => ({
         entity_id: p.entity_id,
         name: p.name || p.entity_id,
