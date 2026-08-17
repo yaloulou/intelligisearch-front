@@ -175,6 +175,25 @@
                   <v-col cols="12" md="6">
                     <v-combobox v-model="form.labels" label="Labels" outlined dense multiple chips small-chips deletable-chips />
                   </v-col>
+                  <v-col cols="12" md="6">
+                    <v-file-input
+                      v-model="entityPhotoFile"
+                      label="Photo de l'entité"
+                      accept="image/*"
+                      prepend-icon="mdi-camera"
+                      outlined
+                      dense
+                      show-size
+                      clearable
+                    />
+                  </v-col>
+                  <v-col cols="12" md="6" class="d-flex align-center">
+                    <v-chip v-if="profilePhotoRef" small color="primary" outlined>
+                      <v-icon left small>mdi-image</v-icon>
+                      Photo déjà liée
+                    </v-chip>
+                    <span v-else class="text-caption grey--text">Aucune photo liée</span>
+                  </v-col>
                 </v-row>
 
                 <template v-if="form.entity_type === 'person'">
@@ -411,9 +430,16 @@ export default {
       activeTab: 0,
       saving: false,
       form: null,
+      entityPhotoFile: null,
       deleteDialog: false,
       entityToDelete: null,
     };
+  },
+
+  computed: {
+    profilePhotoRef() {
+      return (this.form?.media_refs || []).find((media) => media.role === "profile" && media.media_type === "image");
+    },
   },
 
   created() {
@@ -437,6 +463,7 @@ export default {
         identifiers: [],
         contacts: [],
         locations: [],
+        media_refs: [],
         risk: { risk_score: null, risk_level: "", watchlist: false },
         classification: { level: "", compartments: [] },
       };
@@ -495,6 +522,7 @@ export default {
       this.editingId = null;
       this.activeTab = 0;
       this.form = this.emptyForm();
+      this.entityPhotoFile = null;
       this.entityDialog = true;
     },
 
@@ -528,18 +556,21 @@ export default {
           geo_lat: loc.geo ? loc.geo.lat : null,
           geo_lon: loc.geo ? loc.geo.lon : null,
         })),
+        media_refs: (entity.media_refs || []).map((x) => ({ ...x })),
         risk: { ...empty.risk, ...(entity.risk || {}) },
         classification: {
           level: entity.classification ? (entity.classification.level || "") : "",
           compartments: entity.classification && entity.classification.compartments ? [...entity.classification.compartments] : [],
         },
       };
+      this.entityPhotoFile = null;
       this.entityDialog = true;
     },
 
     closeEntityDialog() {
       this.entityDialog = false;
       this.editingId = null;
+      this.entityPhotoFile = null;
     },
 
     buildPayload() {
@@ -578,6 +609,7 @@ export default {
         identifiers: f.identifiers.length ? f.identifiers : undefined,
         contacts: f.contacts.length ? f.contacts : undefined,
         locations: locations.length ? locations : undefined,
+        media_refs: f.media_refs.length ? f.media_refs : undefined,
         risk: (f.risk.risk_level || f.risk.risk_score != null || f.risk.watchlist)
           ? { risk_level: f.risk.risk_level || undefined, risk_score: f.risk.risk_score != null ? f.risk.risk_score : undefined, watchlist: f.risk.watchlist || undefined }
           : undefined,
@@ -595,6 +627,16 @@ export default {
       this.saving = true;
       try {
         const payload = this.buildPayload();
+        if (this.entityPhotoFile) {
+          const uploadRes = await api.entities.uploadPhoto(this.entityPhotoFile);
+          const mediaRef = uploadRes.data?.media_ref;
+          if (mediaRef?.doc_id) {
+            payload.media_refs = [
+              ...(payload.media_refs || []).filter((media) => media.role !== "profile"),
+              mediaRef,
+            ];
+          }
+        }
         if (this.editingId) {
           await api.entities.update(this.editingId, payload);
           this.showSnackbar("Entité mise à jour avec succès", "success");

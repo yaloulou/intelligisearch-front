@@ -56,6 +56,13 @@ const api = {
       axios.put(`${BASE}/api/entities/${id}`, data),
     delete: (id) =>
       axios.delete(`${BASE}/api/entities/${id}`),
+    uploadPhoto: (file) => {
+      const formData = new FormData();
+      formData.append("photo", file);
+      return axios.post(`${BASE}/api/uploads/entity-photo`, formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
+    },
   },
 
   links: {
@@ -95,6 +102,11 @@ const api = {
       axios.put(`${BASE}/api/observations/${id}`, data),
     delete: (id) =>
       axios.delete(`${BASE}/api/observations/${id}`),
+  },
+
+  documents: {
+    get: (id) =>
+      axios.get(`${BASE}/api/documents/${id}`),
   },
 
   intel: {

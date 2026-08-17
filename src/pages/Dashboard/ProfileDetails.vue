@@ -161,6 +161,7 @@ export default {
   data() {
     return {
       entity: null,
+      photoDocument: null,
     };
   },
   computed: {
@@ -189,11 +190,15 @@ export default {
     },
     photoUrl() {
       const media = this.entity?.media;
-      if (!Array.isArray(media) || !media.length) return null;
+      if (Array.isArray(media) && media.length) {
+        const first = media[0];
+        if (first?.url) return this.toAbsoluteUploadUrl(first.url);
+        if (first?.file_path) return `${config.UPLOADS_BASE}/${first.file_path}`;
+      }
 
-      const first = media[0];
-      if (first?.url) return first.url;
-      if (first?.file_path) return `${config.UPLOADS_BASE}/${first.file_path}`;
+      const file = this.photoDocument?.file;
+      if (file?.url) return this.toAbsoluteUploadUrl(file.url);
+      if (file?.path) return `${config.UPLOADS_BASE}/${file.path}`;
       return null;
     },
   },
@@ -206,10 +211,31 @@ export default {
       try {
         const res = await api.entities.get(id);
         this.entity = res.data || null;
+        await this.fetchProfilePhotoDocument();
       } catch (e) {
         console.error("Erreur fetch entity:", e);
         this.entity = null;
+        this.photoDocument = null;
       }
+    },
+    async fetchProfilePhotoDocument() {
+      this.photoDocument = null;
+      const mediaRefs = this.entity?.media_refs || [];
+      const profilePhotoRef = mediaRefs.find((media) => media.role === "profile" && media.media_type === "image");
+      if (!profilePhotoRef?.doc_id) return;
+
+      try {
+        const res = await api.documents.get(profilePhotoRef.doc_id);
+        this.photoDocument = res.data || null;
+      } catch (e) {
+        console.error("Erreur fetch photo document:", e);
+      }
+    },
+    toAbsoluteUploadUrl(url) {
+      if (!url) return null;
+      if (/^https?:\/\//i.test(url)) return url;
+      if (url.startsWith("/uploads/")) return `${config.UPLOAD_BASE}${url}`;
+      return url;
     },
     formatDate(date) {
       if (!date) return "—";
