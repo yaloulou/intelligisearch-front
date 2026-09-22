@@ -102,8 +102,16 @@
           <span v-else class="grey--text">—</span>
         </template>
         <template v-slot:item.watchlist="{ item }">
-          <v-icon v-if="item.risk && item.risk.watchlist" color="orange" small>mdi-eye</v-icon>
-          <span v-else class="grey--text">—</span>
+          <v-btn
+            icon
+            small
+            :color="item.risk && item.risk.watchlist ? 'orange' : 'grey'"
+            :loading="togglingWatchlistIds.includes(item.id)"
+            :title="item.risk && item.risk.watchlist ? 'Retirer de la Watch List' : 'Ajouter à la Watch List'"
+            @click="toggleWatchlist(item)"
+          >
+            <v-icon small>{{ item.risk && item.risk.watchlist ? "mdi-eye" : "mdi-eye-off-outline" }}</v-icon>
+          </v-btn>
         </template>
         <template v-slot:item.tags="{ item }">
           <span v-if="!(item.tags && item.tags.length)" class="grey--text">—</span>
@@ -429,6 +437,7 @@ export default {
       editingId: null,
       activeTab: 0,
       saving: false,
+      togglingWatchlistIds: [],
       form: null,
       entityPhotoFile: null,
       deleteDialog: false,
@@ -557,7 +566,11 @@ export default {
           geo_lon: loc.geo ? loc.geo.lon : null,
         })),
         media_refs: (entity.media_refs || []).map((x) => ({ ...x })),
-        risk: { ...empty.risk, ...(entity.risk || {}) },
+        risk: {
+          ...empty.risk,
+          ...(entity.risk || {}),
+          watchlist: Boolean(entity.risk?.watchlist ?? entity.watchlist),
+        },
         classification: {
           level: entity.classification ? (entity.classification.level || "") : "",
           compartments: entity.classification && entity.classification.compartments ? [...entity.classification.compartments] : [],
@@ -610,9 +623,11 @@ export default {
         contacts: f.contacts.length ? f.contacts : undefined,
         locations: locations.length ? locations : undefined,
         media_refs: f.media_refs.length ? f.media_refs : undefined,
-        risk: (f.risk.risk_level || f.risk.risk_score != null || f.risk.watchlist)
-          ? { risk_level: f.risk.risk_level || undefined, risk_score: f.risk.risk_score != null ? f.risk.risk_score : undefined, watchlist: f.risk.watchlist || undefined }
-          : undefined,
+        risk: {
+          risk_level: f.risk.risk_level || undefined,
+          risk_score: f.risk.risk_score != null ? f.risk.risk_score : undefined,
+          watchlist: Boolean(f.risk.watchlist),
+        },
         classification: f.classification.level
           ? { level: f.classification.level, compartments: f.classification.compartments && f.classification.compartments.length ? f.classification.compartments : undefined }
           : undefined,
@@ -653,6 +668,33 @@ export default {
         this.showSnackbar("Erreur lors de l'enregistrement", "error");
       } finally {
         this.saving = false;
+      }
+    },
+
+    async toggleWatchlist(entity) {
+      if (this.togglingWatchlistIds.includes(entity.id)) return;
+
+      const watchlist = !(entity.risk && entity.risk.watchlist);
+      this.togglingWatchlistIds = [...this.togglingWatchlistIds, entity.id];
+      try {
+        const payload = {
+          ...entity,
+          risk: {
+            ...(entity.risk || {}),
+            watchlist,
+          },
+        };
+        await api.entities.update(entity.id, payload);
+        this.$set(entity, "risk", payload.risk);
+        this.showSnackbar(
+          watchlist ? "Entité ajoutée à la Watch List" : "Entité retirée de la Watch List",
+          "success"
+        );
+      } catch (e) {
+        console.error(e);
+        this.showSnackbar("Impossible de modifier la Watch List", "error");
+      } finally {
+        this.togglingWatchlistIds = this.togglingWatchlistIds.filter((id) => id !== entity.id);
       }
     },
 
