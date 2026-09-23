@@ -748,9 +748,9 @@ export default {
     removeLocation(i) { this.form.locations.splice(i, 1); },
   },
 
-  mounted() {
+  /* mounted() {
     this.performSearch();
-  },
+  }, */
 };
 </script>
 
