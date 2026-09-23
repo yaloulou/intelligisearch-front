@@ -177,6 +177,19 @@
                   <v-col cols="12">
                     <v-combobox v-model="form.aliases" label="Alias / noms alternatifs" outlined dense multiple chips small-chips deletable-chips hint="Appuyez sur Entrée pour valider" />
                   </v-col>
+
+                  <v-col cols="12">
+                    <v-textarea
+                      v-model="form.description"
+                      label="Description"
+                      outlined
+                      dense
+                      rows="3"
+                      auto-grow
+                      hint="Description libre : contexte, informations complémentaires…"
+                      persistent-hint
+                    />
+                  </v-col>
                   <v-col cols="12" md="6">
                     <v-combobox v-model="form.tags" label="Tags" outlined dense multiple chips small-chips deletable-chips />
                   </v-col>
@@ -203,6 +216,7 @@
                     <span v-else class="text-caption grey--text">Aucune photo liée</span>
                   </v-col>
                 </v-row>
+
 
                 <template v-if="form.entity_type === 'person'">
                   <v-divider class="my-3" />
@@ -459,6 +473,7 @@ export default {
     emptyForm() {
       return {
         name: "",
+        description: "",  
         entity_type: "person",
         status: "actif",
         aliases: [],
@@ -543,6 +558,7 @@ export default {
       this.form = {
         ...empty,
         name: entity.name || "",
+        description: entity.description || "",     // ← AJOUT
         entity_type: entity.entity_type || "person",
         status: entity.status || "actif",
         aliases: entity.aliases ? [...entity.aliases] : [],
@@ -613,6 +629,7 @@ export default {
       });
       return {
         name: f.name,
+        description: f.description ? f.description : undefined,   // ← AJOUT
         entity_type: type,
         status: f.status || undefined,
         aliases: f.aliases && f.aliases.length ? f.aliases : undefined,
