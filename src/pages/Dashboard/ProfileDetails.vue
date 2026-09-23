@@ -17,6 +17,17 @@
             <v-col cols="12" md="8">
               <h2 class="mb-2">{{ entity.name || "Sans nom" }}</h2>
 
+<!-- Description de l'entité -->
+              <div v-if="entity.description" class="mb-3">
+                <div class="text-subtitle-2 grey--text mb-1">
+                  <v-icon small left>mdi-text-box-outline</v-icon>
+                  Description
+                </div>
+                <p class="body-1" style="white-space: pre-line;">
+                  {{ entity.description }}
+                </p>
+              </div>
+
               <v-divider class="my-3"></v-divider>
 
               <template v-if="isOrganization">
