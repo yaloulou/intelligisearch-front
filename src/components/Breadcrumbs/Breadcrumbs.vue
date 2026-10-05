@@ -18,6 +18,7 @@
 </template>
 
 <script>
+import { homePath } from "@/services/access";
 export default {
   computed: {
     breadcrumbsGen() {
@@ -43,7 +44,7 @@ export default {
         : this.$route.name || currentPath.split("/").filter(Boolean).pop();
 
       return [
-        { text: "App", to: "/dashboard" },
+        { text: "App", to: homePath(this.$store.state.auth.user) },
         { text, to: null },
       ];
     },

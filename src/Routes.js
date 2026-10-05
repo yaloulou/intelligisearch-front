@@ -87,6 +87,7 @@ import Structure from "@/pages/Documentation/pages/Structure/Structure";
 import Libs from "@/pages/Documentation/pages/Libs/Libs";
 import { getTokenPayload } from "./mixins/auth";
 import UsersAdmin from "@/pages/Admin/Users";
+import { canAccessCcoc, homePath } from "@/services/access";
 
 Vue.use(Router);
 
@@ -175,18 +176,21 @@ const router = new Router({
           path: "/dashboard",
           name: "Dashboard",
           component: Dashboard,
+          meta: { ccocOnly: true },
         },
 
         {
           path: "/board",
           name: "Board",
           component: Board,
+          meta: { ccocOnly: true },
         },
 
         {
           path: "/incident/:id",
           name: "IncidentDetails",
           component: viewDetail,
+          meta: { ccocOnly: true },
         },
 
         {
@@ -211,6 +215,7 @@ const router = new Router({
           path: "/search",
           name: "Search",
           component: Search,
+          meta: { ccocOnly: true },
         },
 
         {
@@ -463,7 +468,7 @@ router.beforeEach((to, from, next) => {
 
   // Already authenticated — skip login page
   if (to.path === "/login" && token) {
-    return next({ path: "/dashboard" });
+    return next({ path: homePath(getTokenPayload()) });
   }
 
   // Public routes — allow
@@ -472,6 +477,10 @@ router.beforeEach((to, from, next) => {
   // No token — redirect to login, save intended destination
   if (!token) {
     return next({ path: "/login", query: { redirect: to.fullPath } });
+  }
+
+  if (to.matched.some((record) => record.meta?.ccocOnly) && !canAccessCcoc(getTokenPayload())) {
+    return next({ path: "/403" });
   }
 
   // Role-restricted route

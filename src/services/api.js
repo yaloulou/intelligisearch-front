@@ -92,6 +92,8 @@ const api = {
   },
 
   observations: {
+    desks: () => axios.get(`${BASE}/api/observations/desks`),
+    validate: (id, data) => axios.put(`${BASE}/api/observations/${encodeURIComponent(id)}/validation`, data),
     search: (params) =>
       axios.post(`${BASE}/api/observations/search`, params),
     get: (id) =>
@@ -107,6 +109,20 @@ const api = {
   documents: {
     get: (id) =>
       axios.get(`${BASE}/api/documents/${id}`),
+  },
+
+  evidence: {
+    upload: (file, context, classification, onUploadProgress) => {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("context", context);
+      formData.append("classification", JSON.stringify(classification || { level: "OUVERT", compartments: [] }));
+      return axios.post(`${BASE}/api/uploads/evidence`, formData, { onUploadProgress });
+    },
+    get: (id, params) => axios.get(`${BASE}/api/evidence/${encodeURIComponent(id)}`, { params }),
+    file: (id, params) => axios.get(`${BASE}/api/evidence/${encodeURIComponent(id)}/file`, {
+      params, responseType: "blob",
+    }),
   },
 
   intel: {

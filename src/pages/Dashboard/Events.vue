@@ -382,6 +382,14 @@
               </v-container>
             </v-tab-item>
           </v-tabs>
+          <evidence-attachments
+            v-if="detailsDialog"
+            :key="selectedEventData._id"
+            :value="selectedEventData.evidence || []"
+            context="events"
+            :record-id="selectedEventData._id || ''"
+            readonly
+          />
         </v-card-text>
       </v-card>
     </v-dialog>
@@ -398,12 +406,12 @@
     </v-snackbar>
 
     <!-- Add/Edit Renseignement Dialog -->
-    <v-dialog v-model="addEventDialog" max-width="800px" scrollable>
+    <v-dialog v-model="addEventDialog" max-width="800px" scrollable :persistent="savingEvent">
       <v-card>
         <v-card-title>
           <h3>{{ editingEvent ? 'Modifier' : 'Créer' }} un renseignement</h3>
           <v-spacer></v-spacer>
-          <v-btn icon @click="addEventDialog = false">×</v-btn>
+          <v-btn icon :disabled="savingEvent" @click="addEventDialog = false">×</v-btn>
         </v-card-title>
         <v-card-text>
           <v-form ref="eventForm">
@@ -725,12 +733,20 @@
               class="mb-4"
               hint="Appuyez sur Entrée pour ajouter"
             ></v-combobox>
+            <evidence-attachments
+              v-if="addEventDialog"
+              ref="eventEvidence"
+              v-model="formEvent.evidence"
+              context="events"
+              :record-id="formEvent._id || ''"
+              :busy="savingEvent"
+            />
           </v-form>
         </v-card-text>
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn text @click="addEventDialog = false">Annuler</v-btn>
-          <v-btn color="primary" @click="saveEvent">Enregistrer</v-btn>
+          <v-btn text :disabled="savingEvent" @click="addEventDialog = false">Annuler</v-btn>
+          <v-btn color="primary" :loading="savingEvent" @click="saveEvent">Enregistrer</v-btn>
         </v-card-actions>
       </v-card>
     </v-dialog>
@@ -739,9 +755,11 @@
 
 <script>
 import api from "@/services/api";
+import EvidenceAttachments from "@/components/Evidence/EvidenceAttachments";
 import { PermissionsMixin } from "@/mixins/permissions";
 
 export default {
+  components: { EvidenceAttachments },
   name: 'Events',
   mixins: [PermissionsMixin],
   data() {
@@ -754,6 +772,7 @@ export default {
       detailsTab: 0,
       selectedEventData: null,
       editingEvent: null,
+      savingEvent: false,
       loading: false,
       searchingEntities: false,
       entityToAdd: null,
@@ -786,6 +805,7 @@ export default {
         time: { start: '', end: '' },
         location: { province: '', territoire: '', address: '', geo: { lat: 0, lon: 0 } },
         participants: [],
+        evidence: [],
         impact: {
           morts: 0,
           blesses: 0,
@@ -996,6 +1016,7 @@ export default {
         time: { start: '', end: '' },
         location: { province: '', territoire: '', address: '', geo: { lat: 0, lon: 0 } },
         participants: [],
+        evidence: [],
         impact: {
           morts: 0,
           blesses: 0,
@@ -1021,6 +1042,7 @@ export default {
       const copy = JSON.parse(JSON.stringify(event));
       this.formEvent = {
         ...copy,
+        evidence: [...(copy.evidence || [])],
         impact: this.normalizeImpact(copy),
         participants: Array.isArray(copy.participants) ? copy.participants : [],
       };
@@ -1082,12 +1104,15 @@ export default {
       }
     },
     async saveEvent() {
+      if (this.savingEvent) return;
       if (!this.formEvent.title || !this.formEvent.event_type) {
         this.showSnackbar('Veuillez remplir les champs obligatoires', 'error');
         return;
       }
 
+      this.savingEvent = true;
       try {
+        this.formEvent.evidence = await this.$refs.eventEvidence.uploadPending(this.formEvent.classification);
         // Convertir les datetime-local en ISO 8601
         const formatDateTime = (dt) => {
           if (!dt || dt === '') return new Date().toISOString();
@@ -1131,6 +1156,7 @@ export default {
             autres_degats: this.formEvent.impact.autres_degats || ''
           },
           participants: participants,
+          evidence: this.formEvent.evidence,
           tags: Array.isArray(this.formEvent.tags) ? this.formEvent.tags : [],
           classification: {
             level: this.formEvent.classification.level || 'OUVERT',
@@ -1160,9 +1186,11 @@ export default {
         await this.fetchEvents();
       } catch (e) {
         console.error("Erreur lors de l'enregistrement:", e);
-        const errorMessage = e.response?.data?.error?.reason || e.message || "Erreur lors de l'enregistrement";
+        const errorMessage = e.response?.data?.message || e.response?.data?.error?.reason || e.message || "Erreur lors de l'enregistrement";
         console.error("Détail de l'erreur:", errorMessage);
         this.showSnackbar(`Erreur: ${errorMessage}`, 'error');
+      } finally {
+        this.savingEvent = false;
       }
     }
   }

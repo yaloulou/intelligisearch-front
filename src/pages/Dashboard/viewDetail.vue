@@ -31,10 +31,25 @@
             <strong>Localité/Village/Lieu précis :</strong>
             {{ incident.location?.localite_village_lieuprecis || "Non défini" }}
           </v-col>
-          <v-col cols="12" sm="6">
+          <v-col cols="12">
             <strong>Acteurs impliqués :</strong>
-            {{ incident.actors?.[0]?.nom || "Non défini" }} /
-            {{ incident.actors?.[1]?.nom || "Non défini" }}
+            <div v-if="displayActors.length" class="actors-detail-list">
+              <div
+                v-for="(actor, index) in displayActors"
+                :key="`detail-actor-${index}`"
+                class="actor-detail-row"
+              >
+                <span class="actor-detail-index">{{ index + 1 }}</span>
+                <div>
+                  <strong class="actor-detail-name">{{ actor.nom }}</strong>
+                  <div v-if="actor.role || actor.assoc" class="actor-detail-meta">
+                    <span v-if="actor.role">Rôle : {{ actor.role }}</span>
+                    <span v-if="actor.assoc">Association : {{ actor.assoc }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <span v-else>Non défini</span>
           </v-col>
           <v-col cols="12" sm="6">
             <strong>Latitude :</strong>
@@ -137,6 +152,26 @@ export default {
       comment: "", // Commentaires de l'utilisateur
     };
   },
+  computed: {
+    displayActors() {
+      if (Array.isArray(this.incident.actors)) {
+        return this.incident.actors.filter((actor) => actor && actor.nom);
+      }
+
+      return [
+        {
+          nom: this.incident.acteur1,
+          role: "",
+          assoc: this.incident.assoc_acteur1,
+        },
+        {
+          nom: this.incident.acteur2,
+          role: "",
+          assoc: this.incident.assoc_acteur2,
+        },
+      ].filter((actor) => actor.nom);
+    },
+  },
   mounted() {
     this.fetchIncidentDetails();
   },
@@ -209,5 +244,44 @@ export default {
 
 .v-card-title {
   font-weight: bold;
+}
+
+.actors-detail-list {
+  margin-top: 12px;
+  border-top: 1px solid #e0e5eb;
+}
+
+.actor-detail-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid #e0e5eb;
+}
+
+.actor-detail-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  flex: 0 0 26px;
+  background: #f1f3f6;
+  color: #455a64;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.actor-detail-name {
+  color: #263238;
+}
+
+.actor-detail-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin-top: 4px;
+  color: #607d8b;
+  font-size: 0.85rem;
 }
 </style>

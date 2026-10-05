@@ -273,69 +273,74 @@
           </div>
 
           <div class="section-body">
-            <v-row>
-              <v-col cols="12">
-                <p class="actor-label"><strong>Acteur Principal</strong></p>
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="form.acteur1"
-                  label="Nom / Désignation"
-                  outlined
-                  dense
-                  :rules="[rules.required]"
-                  prepend-inner-icon="mdi-account-alert"
-                  placeholder="Ex : Forces de sécurité, Milices armées..."
-                  color="red darken-2"
-                ></v-text-field>
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="form.assoc_acteur1"
-                  label="Entité Associée"
-                  outlined
-                  dense
-                  :rules="[rules.required]"
-                  prepend-inner-icon="mdi-link-variant"
-                  placeholder="Organisation ou entité associée"
-                  color="red darken-2"
-                ></v-text-field>
-              </v-col>
-            </v-row>
-
-            <v-divider class="my-4"></v-divider>
-
-            <v-row>
-              <v-col cols="12">
+            <div
+              v-for="(actor, index) in form.actors"
+              :key="`actor-${index}`"
+              class="actor-entry"
+            >
+              <div class="actor-entry-head">
                 <p class="actor-label">
-                  <strong>Acteur Secondaire</strong>
-                  <v-chip x-small class="ml-2 chip-optional">optionnel</v-chip>
+                  <strong>Acteur {{ index + 1 }}</strong>
                 </p>
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="form.acteur2"
-                  label="Nom / Désignation"
-                  outlined
-                  dense
-                  prepend-inner-icon="mdi-account"
-                  placeholder="Deuxième acteur impliqué"
-                  color="red darken-1"
-                ></v-text-field>
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-text-field
-                  v-model="form.assoc_acteur2"
-                  label="Entité Associée"
-                  outlined
-                  dense
-                  :rules="[rules.required]"
-                  prepend-inner-icon="mdi-link-variant"
-                  placeholder="Organisation ou entité associée"
-                  color="red darken-1"
-                ></v-text-field>
-              </v-col>
-            </v-row>
+                <v-tooltip v-if="form.actors.length > 1" bottom>
+                  <template v-slot:activator="{ on, attrs }">
+                    <v-btn
+                      v-bind="attrs"
+                      v-on="on"
+                      icon
+                      small
+                      color="error"
+                      @click="removeActor(index)"
+                    >
+                      <v-icon small>mdi-delete-outline</v-icon>
+                    </v-btn>
+                  </template>
+                  <span>Supprimer cet acteur</span>
+                </v-tooltip>
+              </div>
+
+              <v-row>
+                <v-col cols="12" md="4">
+                  <v-text-field
+                    v-model="actor.nom"
+                    label="Nom / Désignation *"
+                    outlined
+                    dense
+                    :rules="[rules.required]"
+                    prepend-inner-icon="mdi-account"
+                    placeholder="Nom de l'acteur"
+                    color="red darken-2"
+                  ></v-text-field>
+                </v-col>
+                <v-col cols="12" md="4">
+                  <v-text-field
+                    v-model="actor.role"
+                    label="Rôle"
+                    outlined
+                    dense
+                    prepend-inner-icon="mdi-account-badge"
+                    placeholder="Rôle dans le CCOC"
+                    color="red darken-2"
+                  ></v-text-field>
+                </v-col>
+                <v-col cols="12" md="4">
+                  <v-text-field
+                    v-model="actor.assoc"
+                    label="Association"
+                    outlined
+                    dense
+                    prepend-inner-icon="mdi-link-variant"
+                    placeholder="Organisation ou groupe associé"
+                    color="red darken-2"
+                  ></v-text-field>
+                </v-col>
+              </v-row>
+            </div>
+
+            <v-btn outlined color="red darken-2" class="btn-add-actor" @click="addActor">
+              <v-icon left>mdi-plus</v-icon>
+              Ajouter un acteur
+            </v-btn>
           </div>
         </div>
 
@@ -596,6 +601,8 @@
 //import axios from "axios";
 import api from "@/services/api";
 
+const createEmptyActor = () => ({ nom: "", role: "", assoc: "" });
+
 export default {
   data() {
     return {
@@ -620,10 +627,7 @@ export default {
         description: "",
         
         // Acteurs impliqués
-        acteur1: "",
-        acteur2: "",
-        assoc_acteur1: "",
-        assoc_acteur2: "",
+        actors: [createEmptyActor()],
         
         // Dégâts
         degats_humains: {
@@ -646,7 +650,7 @@ export default {
         },
       },
       rules: {
-        required: (v) => !!v || "Ce champ est obligatoire",
+        required: (v) => !!String(v ?? "").trim() || "Ce champ est obligatoire",
         nonNegative: (v) => v >= 0 || "La valeur doit être positive",
       },
       menu: false,
@@ -658,6 +662,16 @@ export default {
     };
   },
   methods: {
+    addActor() {
+      this.form.actors.push(createEmptyActor());
+    },
+
+    removeActor(index) {
+      if (this.form.actors.length > 1) {
+        this.form.actors.splice(index, 1);
+      }
+    },
+
     submitForm() {
       if (!this.$refs.form.validate()) {
         this.showError("Veuillez corriger les erreurs du formulaire.");
@@ -669,6 +683,11 @@ export default {
       // Conversion des types numériques
       const dataToSubmit = {
         ...this.form,
+        actors: this.form.actors.map(({ nom, role, assoc }) => ({
+          nom,
+          role,
+          assoc,
+        })),
         degats_humains: {
           morts_civils: parseInt(this.form.degats_humains.morts_civils) || 0,
           morts_allies: parseInt(this.form.degats_humains.morts_allies) || 0,
@@ -732,10 +751,7 @@ export default {
         description: "",
         
         // Acteurs impliqués
-        acteur1: "",
-        acteur2: "",
-        assoc_acteur1: "",
-        assoc_acteur2: "",
+        actors: [createEmptyActor()],
         
         // Dégâts
         degats_humains: {
@@ -924,7 +940,31 @@ export default {
   align-items: center;
   font-size: 0.9rem;
   color: #37474f;
+  margin: 0;
+}
+
+.actor-entry {
+  padding: 1rem 0 0.25rem;
+  border-bottom: 1px solid #e8eaed;
+}
+
+.actor-entry:first-child {
+  padding-top: 0;
+}
+
+.actor-entry-head {
+  min-height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   margin-bottom: 0.5rem;
+}
+
+.btn-add-actor {
+  margin-top: 1.25rem;
+  border-radius: 0 !important;
+  text-transform: none !important;
+  font-weight: 600;
 }
 
 /* ══════════════════════════════════════════════════

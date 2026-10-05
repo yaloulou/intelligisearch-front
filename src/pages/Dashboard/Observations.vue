@@ -9,6 +9,9 @@
           un déplacement, une rencontre, une communication, une transaction, une présence en un lieu, etc. 
           Chaque information doit être datée, sourcée et évaluée selon sa fiabilité et crédibilité.
         </v-alert>
+        <v-alert type="info" text dense>
+          {{ isReviewer ? 'Desk cord_intel : contrôlez les informations, puis validez-les en choisissant leurs desks destinataires.' : 'Les informations déposées sont transmises au desk cord_intel. Seuls les analystes et conseillers des desks destinataires voient les informations validées.' }}
+        </v-alert>
       </v-col>
     </v-row>
 
@@ -25,7 +28,7 @@
               clearable
             ></v-text-field>
             <v-spacer></v-spacer>
-            <v-btn color="primary" @click="openObservationDialog()">
+            <v-btn v-if="canCreateObservation" color="primary" @click="openObservationDialog()">
               <v-icon left>mdi-plus</v-icon>
               Nouvelle information
             </v-btn>
@@ -82,6 +85,9 @@
               </v-col>
             </v-row>
 
+            <v-select v-if="isReviewer" v-model="filterStatus" :items="statusOptions"
+              label="Statut de validation" clearable dense outlined @change="fetchObservations" />
+
             <!-- Liste des informations -->
             <v-data-table
               :headers="headers"
@@ -121,14 +127,25 @@
                 </v-chip>
               </template>
 
+              <template v-slot:item.workflow="{ item }">
+                <v-chip small :color="item.workflow?.status === 'validated' ? 'success' : 'warning'">
+                  {{ item.workflow?.status === 'validated' ? 'Validée' : 'En attente' }}
+                </v-chip>
+              </template>
+              <template v-slot:item.target_desks="{ item }">
+                {{ (item.workflow?.target_desks || []).join(', ') || '—' }}
+              </template>
               <template v-slot:item.actions="{ item }">
                 <v-icon small class="mr-2" @click="viewObservation(item)">
                   mdi-eye
                 </v-icon>
-                <v-icon small class="mr-2" @click="editObservation(item)">
+                <v-icon v-if="isReviewer" small class="mr-2" @click="editObservation(item)">
                   mdi-pencil
                 </v-icon>
-                <v-icon small @click="deleteObservation(item)">
+                <v-icon v-if="isReviewer" small class="mr-2" title="Valider et distribuer" @click="openValidation(item)">
+                  mdi-check-decagram
+                </v-icon>
+                <v-icon v-if="isReviewer" small @click="deleteObservation(item)">
                   mdi-delete
                 </v-icon>
               </template>
@@ -144,7 +161,7 @@
         <v-card-title>
           <span class="headline">{{ editMode ? 'Modifier' : 'Nouvelle' }} information</span>
           <v-spacer></v-spacer>
-          <v-btn icon @click="closeObservationDialog">
+          <v-btn icon :disabled="savingObservation" @click="closeObservationDialog">
             <v-icon>mdi-close</v-icon>
           </v-btn>
         </v-card-title>
@@ -154,6 +171,7 @@
             <v-icon small class="mr-2">mdi-information</v-icon>
             <strong>Une information</strong> est un fait documenté (qui, quoi, quand, où). 
             Décrivez un événement concret, datez-le précisément et indiquez vos sources.
+            L’enregistrement place cette information en attente de validation par cord_intel.
           </v-alert>
 
           <v-form ref="observationForm">
@@ -393,12 +411,20 @@
                 ></v-slider>
               </v-col>
             </v-row>
+            <evidence-attachments
+              v-if="observationDialog"
+              ref="observationEvidence"
+              v-model="currentObservation.evidence"
+              context="observations"
+              :record-id="currentObservation._id || ''"
+              :busy="savingObservation"
+            />
           </v-form>
         </v-card-text>
 
         <v-card-actions>
           <v-spacer></v-spacer>
-          <v-btn text @click="closeObservationDialog">Annuler</v-btn>
+          <v-btn text :disabled="savingObservation" @click="closeObservationDialog">Annuler</v-btn>
           <v-btn color="primary" :loading="savingObservation" @click="saveObservation">
             {{ editMode ? 'Modifier' : 'Enregistrer' }}
           </v-btn>
@@ -419,6 +445,8 @@
         <v-card-text>
           <v-simple-table>
             <tbody>
+              <tr><td><strong>Statut :</strong></td><td>{{ selectedObservation.workflow?.status === 'validated' ? 'Validée' : 'En attente de validation' }}</td></tr>
+              <tr><td><strong>Desks destinataires :</strong></td><td>{{ (selectedObservation.workflow?.target_desks || []).join(', ') || '—' }}</td></tr>
               <tr>
                 <td><strong>Type :</strong></td>
                 <td>{{ selectedObservation.obs_type }}</td>
@@ -457,7 +485,37 @@
               </tr>
             </tbody>
           </v-simple-table>
+          <evidence-attachments
+            v-if="viewDialog"
+            :key="selectedObservation._id"
+            :value="selectedObservation.evidence || []"
+            context="observations"
+            :record-id="selectedObservation._id || ''"
+            readonly
+          />
         </v-card-text>
+      </v-card>
+    </v-dialog>
+
+    <v-dialog v-model="validationDialog" max-width="700px" persistent>
+      <v-card v-if="observationToValidate">
+        <v-card-title>Valider et distribuer l’information</v-card-title>
+        <v-card-text>
+          <p class="pre-wrap">{{ observationToValidate.summary }}</p>
+          <evidence-attachments :key="observationToValidate._id" :value="observationToValidate.evidence || []"
+            context="observations" :record-id="observationToValidate._id" readonly />
+          <v-select v-model="targetDesks" :items="availableDesks" label="Desks destinataires *"
+            multiple chips outlined :disabled="validating" />
+          <v-alert v-if="!availableDesks.length" type="warning" text>
+            Aucun desk destinataire disponible. Affectez un analyste ou conseiller actif à un desk dans la gestion des comptes.
+          </v-alert>
+          <p>La validation donne accès à cette information et à ses pièces jointes aux analystes et conseillers des desks sélectionnés.</p>
+        </v-card-text>
+        <v-card-actions>
+          <v-spacer />
+          <v-btn text :disabled="validating" @click="validationDialog = false">Annuler</v-btn>
+          <v-btn color="success" :loading="validating" :disabled="!targetDesks.length" @click="validateObservation">Valider et distribuer</v-btn>
+        </v-card-actions>
       </v-card>
     </v-dialog>
 
@@ -485,11 +543,20 @@
 
 <script>
 import api from "@/services/api";
+import EvidenceAttachments from "@/components/Evidence/EvidenceAttachments";
 
 export default {
+  components: { EvidenceAttachments },
   data() {
     return {
       loading: false,
+      filterStatus: 'pending',
+      statusOptions: [{ text: 'En attente', value: 'pending' }, { text: 'Validées', value: 'validated' }],
+      validationDialog: false,
+      validating: false,
+      observationToValidate: null,
+      targetDesks: [],
+      availableDesks: [],
       search: "",
       observations: [],
       headers: [
@@ -499,6 +566,8 @@ export default {
         { text: "Lieu", value: "location.province" },
         { text: "Entités", value: "entity_refs", sortable: false },
         { text: "Évaluation", value: "evaluation", sortable: false },
+        { text: "Statut", value: "workflow", sortable: false },
+        { text: "Desks destinataires", value: "target_desks", sortable: false },
         { text: "Actions", value: "actions", sortable: false },
       ],
 
@@ -581,6 +650,10 @@ export default {
       },
     };
   },
+  computed: {
+    isReviewer() { return this.$store.getters['auth/canReviewObservations']; },
+    canCreateObservation() { return this.$store.getters['auth/canCreate']('observation'); },
+  },
   created() {
     this.fetchObservations();
   },
@@ -595,6 +668,7 @@ export default {
         obs_type: "",
         summary: "",
         entity_refs: [],
+        evidence: [],
         time: {
           observed_at: "",
           reported_at: "",
@@ -623,6 +697,7 @@ export default {
       this.loading = true;
       try {
         const res = await api.observations.search({
+          status: this.isReviewer ? this.filterStatus : undefined,
           obs_type: this.filterType,
           source_reliability: this.filterReliability,
           dateFrom: this.filterDateFrom,
@@ -694,9 +769,11 @@ export default {
       this.entitySearch = null;
     },
     openObservationDialog(observation = null) {
+      if (observation && !this.isReviewer) return;
+      if (!observation && !this.canCreateObservation) return;
       if (observation) {
         this.editMode = true;
-        this.currentObservation = { ...observation };
+        this.currentObservation = { ...JSON.parse(JSON.stringify(observation)), evidence: [...(observation.evidence || [])] };
         // Charger les entités avec leurs informations complètes
         this.loadEntitiesDetails(observation.entity_refs || []);
       } else {
@@ -739,6 +816,7 @@ export default {
       this.selectedEntities.splice(index, 1);
     },
     async saveObservation() {
+      if (this.savingObservation) return;
       if (!this.currentObservation.obs_type || !this.currentObservation.summary) {
         this.showSnackbar("Veuillez remplir les champs obligatoires", "error");
         return;
@@ -747,6 +825,7 @@ export default {
       this.savingObservation = true;
 
       try {
+        this.currentObservation.evidence = await this.$refs.observationEvidence.uploadPending(this.currentObservation.classification);
         // Construire entity_refs à partir des entités sélectionnées
         const entityRefs = this.selectedEntities.map(entity => ({
           entity_id: entity.entity_id,
@@ -777,26 +856,57 @@ export default {
         }
 
         this.showSnackbar(
-          this.editMode ? "Information modifiée avec succès" : "Information ajoutée avec succès",
+          this.editMode ? "Information modifiée et remise en attente de validation" : "Information transmise à cord_intel pour validation",
           "success"
         );
         this.closeObservationDialog();
         await this.fetchObservations();
       } catch (e) {
         console.error("Erreur lors de l'enregistrement:", e);
-        this.showSnackbar("Erreur lors de l'enregistrement de l'information", "error");
+        this.showSnackbar(e.response?.data?.message || e.message || "Erreur lors de l'enregistrement de l'information", "error");
       } finally {
         this.savingObservation = false;
       }
     },
-    viewObservation(observation) {
-      this.selectedObservation = observation;
-      this.viewDialog = true;
+    async viewObservation(observation) {
+      try {
+        this.selectedObservation = (await api.observations.get(observation._id)).data;
+        this.viewDialog = true;
+      } catch (e) { this.showSnackbar(e.response?.data?.message || "Accès à l’information refusé", "error"); }
     },
-    editObservation(observation) {
-      this.openObservationDialog(observation);
+    async openValidation(observation) {
+      if (!this.isReviewer) return;
+      try {
+        const detail = await api.observations.get(observation._id);
+        const desks = await api.observations.desks();
+        this.observationToValidate = detail.data;
+        this.availableDesks = desks.data.items || [];
+        this.targetDesks = (detail.data.workflow?.target_desks || []).filter(desk => this.availableDesks.includes(desk));
+        this.validationDialog = true;
+      } catch (e) { this.showSnackbar(e.response?.data?.message || "Impossible de préparer la validation", "error"); }
+    },
+    async validateObservation() {
+      if (this.validating || !this.isReviewer || !this.targetDesks.length) return;
+      this.validating = true;
+      try {
+        await api.observations.validate(this.observationToValidate._id, {
+          target_desks: this.targetDesks,
+          _seq_no: this.observationToValidate._seq_no,
+          _primary_term: this.observationToValidate._primary_term,
+        });
+        this.validationDialog = false;
+        this.showSnackbar("Information validée et distribuée");
+        await this.fetchObservations();
+      } catch (e) { this.showSnackbar(e.response?.data?.message || "Erreur de validation", "error"); }
+      finally { this.validating = false; }
+    },
+    async editObservation(observation) {
+      if (!this.isReviewer) return;
+      try { this.openObservationDialog((await api.observations.get(observation._id)).data); }
+      catch (e) { this.showSnackbar(e.response?.data?.message || "Impossible de modifier l’information", "error"); }
     },
     deleteObservation(observation) {
+      if (!this.isReviewer) return;
       this.observationToDelete = observation;
       this.deleteDialog = true;
     },
@@ -851,6 +961,7 @@ export default {
 </script>
 
 <style scoped>
+.pre-wrap { white-space: pre-wrap; }
 .headline {
   font-weight: 600;
 }

@@ -64,8 +64,9 @@ export default {
           title: "Enregistrer CCOC",
           icon: "mdi-file-document-outline",
           link: "/dashboard",
+          ccocOnly: true,
         },
-        { title: "Rechercher CCOC", icon: "mdi-magnify", link: "/search" },
+        { title: "Rechercher CCOC", icon: "mdi-magnify", link: "/search", ccocOnly: true },
         {
           title: "Entités",
           icon: "mdi-chart-bubble",
@@ -117,6 +118,7 @@ export default {
       const role = this.userRole;
       const officierHidden = ["Renseignements", "Relations", "Entités"];
       return this.items.filter((item) => {
+        if (item.ccocOnly && !this.$store.getters["auth/canAccessCcoc"]) return false;
         if (item.adminOnly) return role === "admin";
         if (officierHidden.includes(item.title) && role === "officier") return false;
         return true;

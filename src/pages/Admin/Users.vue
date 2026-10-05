@@ -78,13 +78,14 @@
             label="Rôle"
             outlined dense class="mb-2"
           ></v-select>
-          <v-text-field
+          <v-combobox
             v-model="form.desk"
-            label="Desk (ex: desk_est)"
+            :items="deskOptions"
+            label="Desk"
             outlined dense class="mb-2"
-            hint="Laisser vide si non applicable"
+            hint="cord_intel : validation et distribution des informations. Vous pouvez saisir un autre desk."
             persistent-hint
-          ></v-text-field>
+          ></v-combobox>
           <v-switch
             v-if="editingUser"
             v-model="form.actif"
@@ -172,6 +173,11 @@ export default {
   },
   created() {
     this.fetchUsers();
+  },
+  computed: {
+    deskOptions() {
+      return [...new Set(["cord_intel", "CCOC", ...this.users.map(user => user.desk).filter(Boolean)])];
+    },
   },
   methods: {
     showSnackbar(message, color = "success") {

@@ -1,6 +1,7 @@
 import axios from "axios";
 import router from "../Routes";
 import config from "@/config";
+import { canAccessCcoc, canReviewObservations, homePath } from "@/services/access";
 
 const API_BASE = config.API_BASE;
 
@@ -15,13 +16,16 @@ export default {
     isAuthenticated: () => !!localStorage.getItem("access_token"),
     role: (state) => state.user?.role || null,
     desk: (state) => state.user?.desk || null,
+    canAccessCcoc: (state) => canAccessCcoc(state.user),
+    canReviewObservations: (state) => canReviewObservations(state.user),
     isAdmin: (state) => state.user?.role === "admin",
     isCoordinateur: (state) => state.user?.role === "coordinateur",
     canCreate: (state) => (resource) => {
       const role = state.user?.role;
       if (!role) return false;
+      if (resource === "intel") return canAccessCcoc(state.user);
+      if (resource === "observation" && canReviewObservations(state.user)) return true;
       const matrix = {
-        intel:      ["officier", "coordinateur", "admin"],
         observation:["officier", "coordinateur", "admin"],
         event:      ["analyste", "conseiller", "coordinateur", "admin"],
         relation:   ["analyste", "conseiller", "coordinateur", "admin"],
@@ -33,6 +37,7 @@ export default {
     canDelete: (state) => (resource) => {
       const role = state.user?.role;
       if (!role) return false;
+      if (resource === "observation") return canReviewObservations(state.user);
       const matrix = {
         intel:      ["coordinateur", "admin"],
         observation:["coordinateur", "admin"],
@@ -67,7 +72,7 @@ export default {
     },
   },
   actions: {
-    async loginUser({ commit, dispatch }, creds) {
+    async loginUser({ commit, dispatch, state }, creds) {
       commit("LOGIN_REQUEST");
       try {
         const res = await axios.post(`${API_BASE}/auth/login`, {
@@ -79,7 +84,7 @@ export default {
         axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
         await dispatch("fetchMe");
         commit("LOGIN_SUCCESS");
-        const redirect = router.currentRoute.query?.redirect || "/dashboard";
+        const redirect = router.currentRoute.query?.redirect || homePath(state.user);
         router.push(redirect).catch(() => {});
       } catch (err) {
         const msg =
@@ -126,8 +131,8 @@ export default {
         return dispatch("fetchMe");
       }
     },
-    receiveLogin() {
-      router.push("/dashboard").catch(() => {});
+    receiveLogin({ state }) {
+      router.push(homePath(state.user)).catch(() => {});
     },
   },
 };

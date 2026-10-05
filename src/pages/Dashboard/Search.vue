@@ -195,16 +195,51 @@
 
             <!-- Acteurs -->
             <h5 class="mt-4 mb-2">Acteurs</h5>
-            <v-row>
-              <v-col cols="12" md="6">
-                <v-text-field v-model="currentItem.actors[0].nom" label="Acteur 1 — Nom" outlined dense />
-                <v-text-field v-model="currentItem.actors[0].assoc" label="Acteur 1 — Association" outlined dense />
-              </v-col>
-              <v-col cols="12" md="6">
-                <v-text-field v-model="currentItem.actors[1].nom" label="Acteur 2 — Nom" outlined dense />
-                <v-text-field v-model="currentItem.actors[1].assoc" label="Acteur 2 — Association" outlined dense />
-              </v-col>
-            </v-row>
+            <div
+              v-for="(actor, index) in currentItem.actors"
+              :key="`edit-actor-${index}`"
+              class="edit-actor-entry"
+            >
+              <div class="edit-actor-head">
+                <strong>Acteur {{ index + 1 }}</strong>
+                <v-tooltip v-if="currentItem.actors.length > 1" bottom>
+                  <template v-slot:activator="{ on, attrs }">
+                    <v-btn
+                      v-bind="attrs"
+                      v-on="on"
+                      icon
+                      small
+                      color="error"
+                      @click="removeEditActor(index)"
+                    >
+                      <v-icon small>mdi-delete-outline</v-icon>
+                    </v-btn>
+                  </template>
+                  <span>Supprimer cet acteur</span>
+                </v-tooltip>
+              </div>
+              <v-row>
+                <v-col cols="12" md="4">
+                  <v-text-field
+                    v-model="actor.nom"
+                    label="Nom / Désignation *"
+                    :rules="[rules.required]"
+                    outlined
+                    dense
+                  />
+                </v-col>
+                <v-col cols="12" md="4">
+                  <v-text-field v-model="actor.role" label="Rôle" outlined dense />
+                </v-col>
+                <v-col cols="12" md="4">
+                  <v-text-field v-model="actor.assoc" label="Association" outlined dense />
+                </v-col>
+              </v-row>
+            </div>
+            <v-btn outlined color="red darken-2" class="btn-add-edit-actor" @click="addEditActor">
+              <v-icon left>mdi-plus</v-icon>
+              Ajouter un acteur
+            </v-btn>
 
             <!-- Source -->
             <h5 class="mt-4 mb-2">Source</h5>
@@ -283,6 +318,8 @@
 //import axios from "axios";
 import api from "@/services/api";
 
+const createEmptyActor = () => ({ nom: "", role: "", assoc: "" });
+
 export default {
   name: "Search",
   data() {
@@ -300,6 +337,9 @@ export default {
 
       editDialog: false,
       currentItem: this.emptyItem(),
+      rules: {
+        required: (v) => !!String(v ?? "").trim() || "Ce champ est obligatoire",
+      },
 
       headers: [
         { text: "Date", value: "date_event" },
@@ -344,10 +384,7 @@ export default {
           categorie: "",
           description: "",
         },
-        actors: [
-          { nom: "", role: "acteur1", assoc: "" },
-          { nom: "", role: "acteur2", assoc: "" },
-        ],
+        actors: [createEmptyActor()],
         source: {
           source_type: "",
           source_name: "",
@@ -398,6 +435,11 @@ export default {
 
       return {
         ...doc,
+        actors: (doc.actors || []).map(({ nom, role, assoc }) => ({
+          nom,
+          role,
+          assoc,
+        })),
         degats_humains: {
           morts_civils: this.safeInt(degatsHumains.morts_civils ?? degatsHumains.morts),
           morts_allies: this.safeInt(degatsHumains.morts_allies),
@@ -493,23 +535,27 @@ export default {
       const event = copy.event && typeof copy.event === "object" ? copy.event : {};
       const source = copy.source && typeof copy.source === "object" ? copy.source : {};
       const legacyEventType = typeof copy.event === "string" ? copy.event : undefined;
-      const actors = Array.isArray(copy.actors) && copy.actors.length
-        ? copy.actors.map((actor, index) => ({
-            ...(empty.actors[index] || {}),
-            ...actor,
-          }))
-        : [
-            {
-              ...empty.actors[0],
-              nom: copy.acteur1 || "",
-              assoc: copy.assoc_acteur1 || "",
-            },
-            {
-              ...empty.actors[1],
-              nom: copy.acteur2 || "",
-              assoc: copy.assoc_acteur2 || "",
-            },
-          ];
+      let actors;
+      if (Array.isArray(copy.actors) && copy.actors.length) {
+        actors = copy.actors
+          .filter((actor) => actor && typeof actor === "object")
+          .map((actor) => ({ ...createEmptyActor(), ...actor }));
+      } else {
+        actors = [
+          {
+            nom: copy.acteur1 || "",
+            role: copy.acteur1 ? "acteur1" : "",
+            assoc: copy.assoc_acteur1 || "",
+          },
+          {
+            nom: copy.acteur2 || "",
+            role: copy.acteur2 ? "acteur2" : "",
+            assoc: copy.assoc_acteur2 || "",
+          },
+        ].filter((actor) => actor.nom);
+      }
+
+      if (!actors.length) actors.push(createEmptyActor());
 
       return {
         ...empty,
@@ -563,6 +609,16 @@ export default {
       this.editDialog = true;
     },
 
+    addEditActor() {
+      this.currentItem.actors.push(createEmptyActor());
+    },
+
+    removeEditActor(index) {
+      if (this.currentItem.actors.length > 1) {
+        this.currentItem.actors.splice(index, 1);
+      }
+    },
+
     closeEditDialog() {
       this.editDialog = false;
       this.currentItem = this.emptyItem();
@@ -570,6 +626,8 @@ export default {
 
     async saveEdit() {
       try {
+        if (!this.$refs.editForm.validate()) return;
+
         const { id, ...doc } = this.currentItem;
 
         if (!id) {
@@ -698,6 +756,26 @@ export default {
 
 .btn-edit {
   margin-left: 4px;
+}
+
+.edit-actor-entry {
+  padding-top: 12px;
+  border-bottom: 1px solid #e8eaed;
+}
+
+.edit-actor-head {
+  min-height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  color: #37474f;
+}
+
+.btn-add-edit-actor {
+  margin-top: 12px;
+  border-radius: 0 !important;
+  text-transform: none !important;
+  font-weight: 600;
 }
 
 /* ── Responsive ──────────────────── */
